@@ -47,7 +47,7 @@ The line has two buttons of its own: `Apply` and `Turn off`. Click them, or focu
 
 `Apply` writes the suggested model and effort into their `/config` rows, as if you changed them in the menu yourself. Your prompt stays in the box: all that is left is Enter. A short notice says what was applied.
 
-Two things to know. Changing the model from `/config` may save it as the default model for new sessions. When `/config` has no effort row, the mod runs `/effort <level>` as you would, and that saves the level as the model's default for later sessions; `Undo` puts back the level you had, or runs `/effort auto` when it was the model's own default. And if the engine refuses the change, the notice says so and you will have to use `/model` or `/effort`.
+Three things to know. Changing the model from `/config` may save it as the default model for new sessions. When `/config` has no effort row, the mod runs `/effort <level>` as you would, and that saves the level as the model's default for later sessions; `Undo` puts back the level you had, or runs `/effort auto` when it was the model's own default. And if the engine refuses the change, the notice says so and you will have to use `/model` or `/effort`.
 
 `Turn off` switches the advisor off for the whole session, `/clear` included: no advice and no Haiku calls. On the first prompt the band then says "Advisor off" and offers `Turn on`, which brings the advice back for the draft in the box. The `Improve` button stays either way.
 

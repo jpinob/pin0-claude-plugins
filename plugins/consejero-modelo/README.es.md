@@ -47,7 +47,7 @@ La línea trae dos botones propios: `Aplicar` y `Desactivar`. Haz clic, o enfoca
 
 `Aplicar` escribe el modelo y el effort sugeridos en sus filas de `/config`, igual que si los cambiaras tú en el menú. Tu prompt se queda en la caja: después solo falta Enter. Un aviso corto dice qué se aplicó.
 
-Dos cosas a saber. Cambiar el modelo desde `/config` puede guardarlo como modelo por defecto de las sesiones nuevas. Cuando `/config` no tiene fila de effort, el mod ejecuta `/effort <nivel>` como lo harías tú, y eso guarda el nivel como el de ese modelo para las sesiones siguientes; `Deshacer` devuelve el nivel que tenías, o ejecuta `/effort auto` si era el que trae el modelo por defecto. Y si el motor niega el cambio, el aviso lo dice y tendrás que usar `/model` o `/effort`.
+Tres cosas a saber. Cambiar el modelo desde `/config` puede guardarlo como modelo por defecto de las sesiones nuevas. Cuando `/config` no tiene fila de effort, el mod ejecuta `/effort <nivel>` como lo harías tú, y eso guarda el nivel como el de ese modelo para las sesiones siguientes; `Deshacer` devuelve el nivel que tenías, o ejecuta `/effort auto` si era el que trae el modelo por defecto. Y si el motor niega el cambio, el aviso lo dice y tendrás que usar `/model` o `/effort`.
 
 `Desactivar` apaga el consejero toda la sesión, también tras `/clear`: ni consejo ni llamadas a Haiku. En el primer prompt la banda dice entonces "Consejero desactivado" y ofrece `Activar`, que devuelve el consejo para el borrador de la caja. El botón `Mejorar` se queda en los dos casos.
 
