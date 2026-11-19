@@ -12,7 +12,7 @@ It only suggests. It never changes the model or the effort on its own: it does s
 
 On any prompt, the `Improve` button also asks a model for a better version of what you wrote and shows it in a pane, next to a model and effort card for that same draft. You pick what to use, and you press Enter yourself.
 
-Current version: **0.8.0** (in `.claude-plugin/plugin.json`).
+Current version: **0.8.1** (in `.claude-plugin/plugin.json`).
 
 ![The Improved prompt pane: Sonnet's proposal for "add dark mode to the settings page", with three SPECIFY tags in yellow, one OPTIONAL tag in green, a line of changes and the Use and Discard buttons](docs/pane-en.png)
 
@@ -62,7 +62,7 @@ Press `Improve` in the band, or type `/mejora`. This is what happens:
    - **Model and effort.** Haiku's suggestion for that same draft: one row for the model and one for the effort, only the ones that would change. It is explained in [Model and effort in the pane](#model-and-effort-in-the-pane).
 4. Every card and every row has `Use`, in your theme's green, and `Discard`. They only record your pick; nothing changes yet.
 5. Once every row has a pick, `Prepare` shows up below the cards. It applies what you picked: the proposal goes into the box, and the model and effort go into their `/config` rows. It never sends anything.
-6. After `Prepare`, `Undo` puts back exactly what the box held, and the model and effort they had.
+6. After `Prepare`, the pane keeps one line with what was applied and what was discarded, for example `Applied: prompt in the box, model Fable. Discarded: effort.`: the notice goes in seconds, and VS Code shows the model nowhere. `Undo` puts back exactly what the box held, and the model and effort you had.
 7. At the foot, the signature "made with ♥ and Ai by Pin0", in the colours of your light or dark theme. In a narrow pane it is short: "♥ Ai Pin0".
 
 After `Prepare` the band says nothing, not even `Improve`, until you send the prompt: you have already decided for that draft. `/mejora` still works if you need it. `Undo` brings the band back.
@@ -243,7 +243,6 @@ claude plugin test .
 - The engine has no call to read the session's effort. Before the first request the mod reads the effort row of `/config`. If you use the `CLAUDE_CODE_EFFORT_LEVEL` variable, it does not see it. When it cannot read the effort, it compares the model alone.
 - It does not look at `flujo-plan`'s state, which picks a model per step. With a step active, the line compares against your session's model, not the one that will answer.
 - The Haiku part is tested with simulated answers. What the real Haiku answers, and how often it is right, shows in use. That goes for the task memory too: whether Haiku tells a "yes" from a new task is untested on real prompts.
-- `Prepare` writes `/config` rows, like `Apply`. In VS Code that write is untested: there was no band there to try `Apply`.
 - In VS Code the theme colours do not show, so the pane uses the signature's fixed colours there, measured at 4.5:1 on VS Code's backgrounds. The colours of the tags in the prompt box itself stay the theme's.
 - The improver's tests use simulated answers. The Sonnet and Haiku comparison above is six prompts and five runs: a small sample.
 - Closing the pane yourself (with Escape or its close mark) forgets the proposal. No test covers it: the test kit cannot simulate that close.
@@ -252,6 +251,8 @@ claude plugin test .
 - The signature "made with ♥ and Ai by Pin0" sits at the foot of the "Improved prompt" pane and at the end of `/consejo`. It does not fit in the band, which is a single line.
 
 ## Versions
+
+- **0.8.1**: after `Prepare` the pane keeps a line with what was applied and discarded (the notice went too fast, and VS Code shows the model nowhere); checked by Javi in VS Code: `Prepare` does change the model there.
 
 - **0.8.0**: the pane has two cards, prompt and model and effort, each with `Use` and `Discard`, and `Prepare` applies the picks; after the first prompt the card proposes the model with a red warning about the cache, raises the effort freely and lowers it one level only for a new task after a clean turn; a task memory so a run of "yes" keeps its task; after `Prepare` the band is quiet until the next send; fixed colours in VS Code.
 - **0.7.5**: `/mejora` opens the pane in a narrow terminal too (before, under 144 columns it stayed undrawn); `/consejo` and `/mejora` are registered in sessions that are not the terminal's REPL, such as VS Code's.

@@ -204,6 +204,13 @@ export const MESSAGES = {
         ? 'Nada que preparar: tu caja, tu modelo y tu effort siguen igual.'
         : `Preparado: ${parts.join(', ')}. Revisa la caja y pulsa Enter.`,
     prepareFailed: (list: string) => `No se pudo cambiar ${list}. Cámbialo con /model o /effort.`,
+    namePrompt: 'prompt',
+    nameModel: 'modelo',
+    appliedLine: (applied: string[], discarded: string[]) =>
+      [applied.length > 0 ? `Aplicado: ${applied.join(', ')}.` : '', discarded.length > 0 ? `Descartado: ${discarded.join(', ')}.` : '']
+        .filter(x => x !== '')
+        .join(' '),
+    notApplied: (list: string) => `No se pudo cambiar: ${list}.`,
     doneNoPrompt: 'Preparado. Tu prompt sigue como lo escribiste: pulsa Enter cuando quieras.',
     rowsUndoFailed: 'No pude devolver el modelo o el effort: usa /model o /effort.',
     use: 'Usar',
@@ -344,6 +351,13 @@ export const MESSAGES = {
         ? 'Nothing to prepare: your box, model and effort stay as they were.'
         : `Prepared: ${parts.join(', ')}. Review the box and press Enter.`,
     prepareFailed: (list: string) => `Could not change ${list}. Change it with /model or /effort.`,
+    namePrompt: 'prompt',
+    nameModel: 'model',
+    appliedLine: (applied: string[], discarded: string[]) =>
+      [applied.length > 0 ? `Applied: ${applied.join(', ')}.` : '', discarded.length > 0 ? `Discarded: ${discarded.join(', ')}.` : '']
+        .filter(x => x !== '')
+        .join(' '),
+    notApplied: (list: string) => `Could not change: ${list}.`,
     doneNoPrompt: 'Prepared. Your prompt stays as you wrote it: press Enter when you want.',
     rowsUndoFailed: 'Could not put the model or effort back: use /model or /effort.',
     use: 'Use',

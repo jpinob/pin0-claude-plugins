@@ -41,11 +41,12 @@ export const EMPTY: ImproverState = {
   choice: null,
   before: '',
   rowsBefore: [],
+  applied: '',
   reason: { es: '', en: '' },
 }
 
 // Reason: the shape tag declines a proposal an older version stored with a one-language reason.
-export const IMPROVER_SHAPE = 'improver-3'
+export const IMPROVER_SHAPE = 'improver-4'
 const improver = atom({ plugin: 'consejero-modelo', key: 'improver' } as const, EMPTY, { shape: IMPROVER_SHAPE })
 const lang = atom({ plugin: 'consejero-modelo', key: 'lang' } as const, FALLBACK as Lang)
 // Reason: the engine lists each file's reads from atoms declared in that file, so register.tsx declares it too.
@@ -147,6 +148,14 @@ export async function prepare($: EngineInterface) {
   const applied = await applyCard($, c, language)
   await update($, settled, () => true)
   const parts = [...(usePrompt ? [m.partPrompt] : []), ...applied.parts]
+  const discarded = [
+    ...(state.step === 'ready' && state.choice === 'discard' ? [m.namePrompt] : []),
+    ...c.rows.filter(r => r.choice === 'discard').map(r => (r.kind === 'model' ? m.nameModel : 'effort')),
+  ]
+  // Reason: a toast goes in seconds and VS Code shows the model nowhere (seen by Javi on 0.8.0), so the pane keeps the line.
+  const line = [m.appliedLine(parts, discarded), applied.failures.length > 0 ? m.notApplied(applied.failures.join('; ')) : '']
+    .filter(x => x !== '')
+    .join(' ')
   if (applied.failures.length > 0) $.ui.toast(m.prepareFailed(applied.failures.join('; ')))
   else $.ui.toast(usePrompt && parts.length === 1 ? m.filled(state.tags.length) : m.prepared(parts))
   // Nothing changed: there is nothing to undo, so the pane goes.
@@ -154,7 +163,7 @@ export async function prepare($: EngineInterface) {
     await forgetProposal($)
     return
   }
-  await update($, improver, a => ({ ...a, step: 'used' as const, before: box.text, rowsBefore: applied.rowsBefore }))
+  await update($, improver, a => ({ ...a, step: 'used' as const, before: box.text, rowsBefore: applied.rowsBefore, applied: line }))
 }
 
 /** Deshacer: the box gets back exactly what it held before Preparar, and the rows their values. */
@@ -170,7 +179,7 @@ export async function undoProposal($: EngineInterface) {
     }
   }
   if (state.rowsBefore.length > 0 && !(await undoRows($, state.rowsBefore, language))) $.ui.toast(t(language).rowsUndoFailed)
-  await update($, improver, a => ({ ...a, step: a.proposal === '' ? ('failed' as const) : ('ready' as const), before: '', rowsBefore: [] }))
+  await update($, improver, a => ({ ...a, step: a.proposal === '' ? ('failed' as const) : ('ready' as const), before: '', rowsBefore: [], applied: '' }))
   await update($, settled, () => false)
 }
 
@@ -251,6 +260,7 @@ async function paneBody($: EngineInterface, e: RenderInput<'Pane'>): Promise<Ren
       </Box>
     ) : state.step === 'used' ? (
       <Box flexDirection="column">
+        {state.applied !== '' && <Text color="text" weight="bold">{state.applied}</Text>}
         <Text color="text">{state.choice === 'use' ? m.inBox : m.doneNoPrompt}</Text>
         <Box>
           <Button key="undo" label={m.undo} hotkey="z" onPress={() => undoProposal($)} />

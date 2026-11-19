@@ -95,6 +95,8 @@ export type ImproverState = {
   before: string
   /** The /config rows Preparar changed, with the values they had before: what Deshacer writes back. */
   rowsBefore: Array<{ key: string; value: string }>
+  /** What Preparar applied and discarded, as the pane shows it until the next send; empty before Preparar. */
+  applied: string
   /** Why there is no proposal, for `failed`. */
   reason: Bilingual
 }

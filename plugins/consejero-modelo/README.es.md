@@ -12,7 +12,7 @@ Solo sugiere. No cambia el modelo ni el effort por su cuenta: lo hace si pulsas 
 
 Además, en cualquier prompt, el botón `Mejorar` pide a un modelo una versión mejor de lo que escribiste y te la enseña en un panel, junto a una tarjeta de modelo y effort para ese mismo borrador. Tú eliges qué usas, y el Enter lo pulsas tú.
 
-Versión actual: **0.8.0** (en `.claude-plugin/plugin.json`).
+Versión actual: **0.8.1** (en `.claude-plugin/plugin.json`).
 
 ![El panel Prompt mejorado: la propuesta de Sonnet para un script que borra logs antiguos, con una etiqueta NECESARIO en rojo, tres ESPECIFICAR en amarillo, la línea de cambios y los botones Usar y Descartar](docs/pane-es.png)
 
@@ -62,7 +62,7 @@ Pulsa `Mejorar` en la banda, o escribe `/mejora`. Pasa esto:
    - **Modelo y effort.** La sugerencia de Haiku para ese mismo borrador: una fila para el modelo y otra para el effort, solo las que cambiarían. Se explica en [Modelo y effort en el panel](#modelo-y-effort-en-el-panel).
 4. Cada tarjeta y cada fila tiene `Usar`, en el verde de tu tema, y `Descartar`. Solo apuntan lo que eliges; todavía no cambia nada.
 5. Cuando todas las filas tienen elección, sale `Preparar` debajo de las tarjetas. Aplica lo que elegiste: la propuesta va a la caja, y el modelo y el effort a sus filas de `/config`. Nunca envía nada.
-6. Después de `Preparar`, `Deshacer` devuelve a la caja exactamente lo que tenía, y el modelo y el effort que tenías.
+6. Después de `Preparar`, el panel deja una línea fija con lo aplicado y lo descartado, por ejemplo `Aplicado: prompt en la caja, modelo Fable. Descartado: effort.`: el aviso se va en segundos, y VS Code no enseña el modelo en ningún sitio. `Deshacer` devuelve a la caja exactamente lo que tenía, y el modelo y el effort que tenías.
 7. Al pie, la firma "made with ♥ and Ai by Pin0", con los colores de tu tema claro u oscuro. Si el panel es estrecho, sale corta: "♥ Ai Pin0".
 
 ### Etiquetas por importancia
@@ -243,7 +243,6 @@ claude plugin test .
 - El motor no tiene una llamada para leer el effort de la sesión. Antes de la primera petición el mod lee la fila de effort de `/config`. Si usas la variable `CLAUDE_CODE_EFFORT_LEVEL`, no la ve. Cuando no consigue leer el effort, compara solo el modelo.
 - No mira el estado de `flujo-plan`, que elige modelo por paso. Con un paso activo, la línea compara contra el modelo de tu sesión, no contra el que responderá.
 - La parte de Haiku está probada con respuestas simuladas. Qué contesta el Haiku de verdad, y cuánto acierta, se ve usándolo. También la memoria de tarea: no está probado con prompts reales si Haiku distingue un "sí" de una tarea nueva.
-- `Preparar` escribe filas de `/config`, como `Aplicar`. En VS Code esa escritura no está probada: allí no había banda para probar `Aplicar`.
 - En VS Code no se ven los colores del tema, así que allí el panel usa los colores fijos de la firma, medidos a 4,5:1 sobre los fondos de VS Code. Los colores de las etiquetas en la propia caja del prompt siguen siendo los del tema.
 - Los tests del mejorador usan respuestas simuladas. La comparación de Sonnet y Haiku de arriba son seis prompts y cinco pasadas: una muestra pequeña.
 - Cerrar el panel tú (con Escape o su aspa) olvida la propuesta. Eso no lo cubre ningún test: el kit de pruebas no puede simular ese cierre.
@@ -252,6 +251,8 @@ claude plugin test .
 - La firma "made with ♥ and Ai by Pin0" va al pie del panel "Prompt mejorado" y al final de `/consejo`. En la banda no cabe: es una sola línea.
 
 ## Versiones
+
+- **0.8.1**: tras `Preparar` el panel deja una línea con lo aplicado y lo descartado (el aviso se iba demasiado rápido, y VS Code no enseña el modelo); comprobado por Javi en VS Code: `Preparar` sí cambia el modelo allí.
 
 - **0.8.0**: el panel lleva dos tarjetas, prompt y modelo y effort, cada una con `Usar` y `Descartar`, y `Preparar` aplica lo elegido; después del primer prompt la tarjeta propone modelo con un aviso rojo por la caché, sube el effort sin freno y lo baja un nivel solo con tarea nueva y turno limpio; memoria de tarea para que una racha de "sí" no pierda su tarea; tras `Preparar` la banda calla hasta el siguiente envío; colores fijos en VS Code.
 - **0.7.5**: `/mejora` abre el panel también en una terminal estrecha (antes, por debajo de 144 columnas no se dibujaba); `/consejo` y `/mejora` se registran en sesiones que no son la terminal, como las de VS Code.

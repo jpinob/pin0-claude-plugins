@@ -6,7 +6,7 @@ import type { EngineInterface, RenderElement, RenderInput } from 'claude-code'
 import rulesData from '../rules'
 import type { CardRow, Choice, Classification, Effort, Lang, Settings, SettingsCard } from '../types'
 import { findRow, effortValue, modelValue } from './apply'
-import { classify, effortOf } from './classifier'
+import { classify, displayName, effortOf } from './classifier'
 import type { Rules } from './classifier'
 import { cardRows, NO_EVIDENCE, turnEvidence } from './effort'
 import type { Message, TurnEvidence } from './effort'
@@ -175,7 +175,7 @@ export async function applyCard($: EngineInterface, c: SettingsCard, language: L
       continue
     }
     out.rowsBefore.push({ key: config.key, value: String(config.value ?? '') })
-    out.parts.push(kind === 'model' ? m.partModel(row.value) : m.partEffort(row.value))
+    out.parts.push(kind === 'model' ? m.partModel(displayName(row.value)) : m.partEffort(row.value))
   }
 
   return out
@@ -210,9 +210,8 @@ export async function drawCard($: EngineInterface, e: RenderInput<'Pane'>, isLoc
           <Box flexDirection="column">
             <Text color="text">{row.text[language]}</Text>
             {row.kind === 'model' && !c.isFirst && <Text color={colors.alarm} weight="bold">{m.reread(row.rereadTokens)}</Text>}
-            {isLocked ? (
-              <Text color="text">{row.choice === null ? '' : m.picked[row.choice]}</Text>
-            ) : (
+            {/* Reason: once applied, the pane's fixed "Aplicado" line says what happened; the picks would only repeat it. */}
+            {isLocked ? null : (
             <Box>
               <Button key={`use-${row.kind}`} hotkey={row.kind === 'model' ? 'm' : 'e'} onPress={() => chooseRow($, row.kind, 'use')}>
                 <Text color={colors.action}>{m.use}</Text>

@@ -165,6 +165,8 @@ test('Preparar writes the picked row, puts the proposal in the box, and the band
   expect(m.sets).toEqual([['effortLevel', 'max']])
   expect(m.box).toBe(PROPOSAL)
   expect(await buttons(ui)).toEqual(['undo', 'close'])
+  // The pane keeps what was applied: a toast goes in seconds and VS Code shows the model nowhere.
+  expect(await texts(ui)).toContain('Aplicado: prompt en la caja, effort max. Descartado: modelo.')
 
   // The band says nothing, not even Mejorar, while the prepared prompt waits.
   expect(await bandButtons($)).toEqual([])
