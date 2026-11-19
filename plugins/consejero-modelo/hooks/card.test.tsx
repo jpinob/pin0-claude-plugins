@@ -60,6 +60,8 @@ function engine(on: any): Engine {
   })
   on('classic.SessionStart', () => ({}))
   on('classic.Stop', () => ({}))
+  // The built-in /effort, beneath the mod's hook: it prints nothing here.
+  on('command.run', { command: 'effort' }, () => ({ text: '' }))
   on('session.start', (_: unknown, e: any) => ({ cwd: e.cwd }))
   on('fs.read', (_: unknown, e: any) => ({ value: String(e.path ?? e).endsWith('/.claude-plugin/plugin.json') ? '{"version":"9.9.9"}' : '' }))
   on('command.register', (_: unknown, e: any) => ({ value: { command: e.name } }))
@@ -235,7 +237,7 @@ test('the effort comes from /effort and from the end of each turn when /config h
   await ui.unmount()
 
   // `/effort xhigh` typed: the card now compares against it (the migration's rule asks for medium).
-  await $.prompt.submit({ text: '/effort xhigh', command: { name: 'effort', args: 'xhigh' } } as any)
+  await $.command.run({ command: 'effort', args: 'xhigh' } as any)
   await mejora($, TASK)
   ui = await $.ui.mount(pane('terminal'))
   expect(await texts(ui)).toContain('Effort: xhigh → medium')
@@ -270,7 +272,7 @@ test('the pane shows the version of the copy that runs, and /consejo says where 
   expect(shown.indexOf('consejero-modelo v9.9.9')).toBeLessThan(shown.indexOf('made with'))
   await ui.unmount()
 
-  await $.prompt.submit({ text: '/effort high', command: { name: 'effort', args: 'high' } } as any)
+  await $.command.run({ command: 'effort', args: 'high' } as any)
   const after = await $.command.run({ command: 'consejo', args: '' } as any)
   expect(after.text).toContain('Effort que conoce el mod: high (de /effort).')
 })

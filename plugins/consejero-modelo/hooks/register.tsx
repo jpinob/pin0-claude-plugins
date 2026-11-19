@@ -332,8 +332,6 @@ export const register: Register = (on, options) => {
 
   // The first real prompt closes the window. `e` goes down exactly as it came.
   on('prompt.submit', ($, e, next) => {
-    // `/effort high` sets the session's effort without touching the /config row, so the mod reads it here.
-    if (e.command?.name === 'effort') noteEffort(e.command.args.split(/\s+/)[0] ?? '', 'command')
     if (e.command === undefined && e.isMeta !== true) {
       stopHaiku()
       stamp += 1
@@ -345,6 +343,15 @@ export const register: Register = (on, options) => {
     }
 
     return next(e)
+  })
+
+  // `/effort high` sets the session's effort without touching the /config row. Reason: the built-in command
+  // never showed in prompt.submit (seen by Javi on 0.8.4), so the mod reads it as the command runs.
+  on('command.run', { command: 'effort' }, async ($, e, next) => {
+    const result = await next(e)
+    noteEffort(e.args.trim().split(/\s+/)[0] ?? '', 'command')
+
+    return result
   })
 
   // Each turn ends with the effort it ran at: the surest reading the mod gets.

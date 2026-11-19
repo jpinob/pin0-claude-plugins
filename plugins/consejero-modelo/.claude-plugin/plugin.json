@@ -1,6 +1,6 @@
 {
   "name": "consejero-modelo",
-  "version": "0.8.4",
+  "version": "0.8.5",
   "description": "Suggests a model and effort for the first prompt of a session, and with Improve proposes a better version of any prompt in a pane, with a model and effort card for the same draft. Speaks Spanish or English, following your draft. It changes the model, the effort or the prompt only when you press a button, and never sends anything. / Sugiere modelo y effort para el primer prompt y, con Mejorar, propone una versión mejor de cualquier prompt, con una tarjeta de modelo y effort. Habla español o inglés según tu borrador.",
   "author": {
     "name": "Javi"
