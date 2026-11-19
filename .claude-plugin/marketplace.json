@@ -1,0 +1,12 @@
+{
+  "name": "pin0-claude-plugins",
+  "description": "Claude Code mods and plugins by Pin0",
+  "owner": { "name": "Pin0" },
+  "plugins": [
+    {
+      "name": "consejero-modelo",
+      "source": "./plugins/consejero-modelo",
+      "description": "Suggests a model and effort for the first prompt of a session, and rewrites any prompt on request with tags for what is missing. Spanish or English."
+    }
+  ]
+}
