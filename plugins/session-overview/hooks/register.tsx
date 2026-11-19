@@ -21,6 +21,7 @@ import {
   usd,
 } from './format'
 import { drawSignature, signatureColors } from './signature'
+import { fileListBody, filesSummary, fileToolPath, noteFileChange } from './files'
 import { lastSegment, readWorkspace } from './workspace'
 
 const PANE = 'session-overview'
@@ -51,6 +52,8 @@ async function refreshTheme($: EngineInterface) {
   const row = (await $.config.list()).find(r => r.key === 'theme')
   await update($, theme, () => (typeof row?.value === 'string' ? row.value : ''))
 }
+// Reason: the scan lists state per file, so each file that reads or writes a value declares its own atom.
+const files = atom({ plugin: 'session-overview', key: 'files' } as const, [])
 
 // `summary` estimates the breakdown locally, so this sends no request.
 async function readAutoCompact($: EngineInterface) {
@@ -154,8 +157,12 @@ export const register: Register = (on, options) => {
   })
 
   on('tool.call', async ($, e, next) => {
+    const path = fileToolPath(e.tool, e as Readonly<Record<string, unknown>>)
+    // Reason: whether the file was there before the write tells "created" from "modified".
+    const existed = path === undefined ? true : await $.fs.exists(path).catch(() => true)
     const result = await next(e)
     if (WORKSPACE_TOOLS.has(e.tool)) void refreshWorkspace($)
+    if (path !== undefined && result.deny === undefined && !result.isError) void noteFileChange($, path, existed)
 
     return result
   })
@@ -187,7 +194,7 @@ export const register: Register = (on, options) => {
     const { Box, Button, Text } = pieces
     // Reason: the terminal's table also has an Svg key but draws nothing there, so the surface decides.
     const Svg = e.surface !== 'terminal' && 'Svg' in pieces ? pieces.Svg : undefined
-    const [usage, model, now, place, level, folded, autoTokens, themeName] = await Promise.all([
+    const [usage, model, now, place, level, folded, autoTokens, themeName, touched] = await Promise.all([
       $.session.usage(),
       $.session.model(),
       $.clock.now(),
@@ -196,6 +203,7 @@ export const register: Register = (on, options) => {
       read($, collapsed),
       read($, autoCompactAt),
       read($, theme),
+      read($, files),
     ])
     // Two border cells and two padding cells sit around each bar.
     const barWidth = Math.max(8, (e.props.bodyColumns ?? PANE_COLUMNS) - 4)
@@ -452,6 +460,14 @@ export const register: Register = (on, options) => {
             No reading yet. Subscription plans only, after the first reply.
           </Text>
         ),
+      },
+      {
+        id: 'files',
+        number: '5',
+        title: '📝 FILES',
+        color: touched.length > 0 ? 'claude' : 'subtle',
+        aside: { folded: filesSummary(touched) },
+        body: fileListBody($, { Box, Button, Text }, touched, place?.cwd, MUTED_COLOR),
       },
     ]
 

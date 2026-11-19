@@ -13,7 +13,7 @@
     {
       "name": "session-overview",
       "source": "./plugins/session-overview",
-      "description": "A pane beside the chat with the session's model, effort, cost, workspace, context window and usage limits."
+      "description": "A pane beside the chat with the session's model, effort, cost, workspace, context window, usage limits and the files it created or modified."
     }
   ]
 }

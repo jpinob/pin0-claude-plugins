@@ -1,10 +1,10 @@
 {
   "name": "session-overview",
-  "version": "0.2.3",
+  "version": "0.3.1",
   "author": {
     "name": "Javi"
   },
-  "description": "Docked pane with the current model, session cost and time, workspace folder, branch and worktree, context window fill, and the 5-hour and weekly usage limits",
+  "description": "Docked pane with the current model, session cost and time, workspace folder, branch and worktree, context window fill, the 5-hour and weekly usage limits, and the files the session created or modified, each one click away in VS Code",
   "types": "./types/index.d.ts",
   "userConfig": {
     "compactAt": {

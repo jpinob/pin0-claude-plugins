@@ -9,7 +9,7 @@ Mods y plugins para [Claude Code](https://code.claude.com) que uso a diario y he
 | Plugin | Qué hace |
 | --- | --- |
 | [consejero-modelo](plugins/consejero-modelo) | Mientras escribes el primer prompt de una sesión, una línea encima del prompt te sugiere modelo y effort. En cualquier prompt, `Mejorar` pide a un modelo una versión mejor y te la enseña en un panel, con etiquetas para lo que solo tú puedes contestar. Habla español o inglés, según tu borrador. |
-| [session-overview](plugins/session-overview) | Un panel junto al chat con el modelo, el effort, el coste y el tiempo de la sesión, la carpeta, la rama y el worktree, lo lleno que va el contexto y cuánto queda de los límites de 5 horas y semanal. Su README está en inglés. |
+| [session-overview](plugins/session-overview) | Un panel junto al chat con el modelo, el effort, el coste y el tiempo de la sesión, la carpeta, la rama y el worktree, lo lleno que va el contexto cuánto queda de los límites de 5 horas y semanal, y los ficheros que la sesión ha creado o modificado, cada uno a un clic de VS Code. Su README está en inglés. |
 
 ![El panel Prompt mejorado de consejero-modelo, con etiquetas para lo que solo tú puedes contestar](plugins/consejero-modelo/docs/pane-es.png)
 

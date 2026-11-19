@@ -17,6 +17,21 @@ export type Workspace = {
   }
 }
 
+/** How the session first touched a file: it wrote a new one, or changed one that was there. */
+export type FileChange = 'created' | 'modified'
+
+/** One file a file tool (Write, Edit, NotebookEdit) wrote during the session. */
+export type SessionFile = {
+  /** The path as the tool got it, absolute. */
+  path: string
+  /** Set by the first write; a file the session created stays `created`. */
+  change: FileChange
+  /** How many successful writes the session made to it. */
+  edits: number
+  /** When the last write finished, in epoch milliseconds. */
+  lastAt: number
+}
+
 declare module 'claude-code' {
   interface PluginState {
     'session-overview': {
@@ -29,6 +44,8 @@ declare module 'claude-code' {
       autoCompactAt: number | null
       /** The value of the /config "theme" row, so the signature takes the colours of the theme. */
       theme: string
+      /** Files the session created or modified, newest first. */
+      files: SessionFile[]
     }
   }
 }
