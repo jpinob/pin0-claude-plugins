@@ -69,7 +69,7 @@ export type Tag = { level: Level; question: string }
 
 /** Where the prompt improver stands, and what it proposed. */
 export type ImproverState = {
-  /** idle: no proposal; thinking: the model is writing; ready: shown, box untouched; used: put in the box; failed: no proposal. */
+  /** idle: no proposal; thinking: the model is writing; ready: shown, box untouched; used: Preparar applied the picks; failed: no proposal. */
   step: 'idle' | 'thinking' | 'ready' | 'used' | 'failed'
   /** The alias the request named (`sonnet`, `haiku`). */
   model: string
@@ -89,10 +89,40 @@ export type ImproverState = {
   words: { original: number; proposal: number }
   /** The tags the proposal left, in order. */
   tags: Tag[]
-  /** The box as it was right before Usar: what Deshacer puts back. */
+  /** The person's pick on the prompt card: use the proposal, discard it, or not chosen yet. */
+  choice: Choice
+  /** The box as it was right before Preparar: what Deshacer puts back. */
   before: string
+  /** The /config rows Preparar changed, with the values they had before: what Deshacer writes back. */
+  rowsBefore: Array<{ key: string; value: string }>
   /** Why there is no proposal, for `failed`. */
   reason: Bilingual
+}
+
+/** A pick on a card row: use it, discard it, or not chosen yet. */
+export type Choice = 'use' | 'discard' | null
+
+/** One row of the settings card: a model or an effort to change to, and the person's pick. */
+export type CardRow = {
+  kind: 'model' | 'effort'
+  /** The model family or the effort level proposed. */
+  value: string
+  /** The row's line: from what, to what, and why. */
+  text: Bilingual
+  /** After the first prompt, the tokens a model switch would re-read without cache; null when not warned or unknown. */
+  rereadTokens: number | null
+  choice: Choice
+}
+
+/** The pane's settings card: Haiku's model and effort for the same draft the improver rewrites. */
+export type SettingsCard = {
+  /** hidden: no card (advisor off, no pane); looking: Haiku is reading; ready: rows or a note; failed: no reading. */
+  step: 'hidden' | 'looking' | 'ready' | 'failed'
+  rows: CardRow[]
+  /** What the card says when it has no row: you're fine, or why it does not lower the effort. */
+  note: Bilingual
+  /** True on the first prompt of a conversation, where the model can change without re-reading anything. */
+  isFirst: boolean
 }
 
 declare module 'claude-code' {
@@ -116,6 +146,10 @@ declare module 'claude-code' {
       improver: Shaped<ImproverState>
       /** The language the mod speaks: the last one a draft was detected in, else Claude Code's setting. */
       lang: Lang
+      /** The pane's settings card. */
+      card: Shaped<SettingsCard>
+      /** True once Preparar applied the picks, until the next prompt is sent: the band says nothing meanwhile. */
+      settled: boolean
     }
   }
 }

@@ -57,6 +57,10 @@ const both = (lang: Lang, a: string, b: string): string => `${a} ${lang === 'es'
 
 const plural = (n: number, one: string, many: string): string => `${n} ${n === 1 ? one : many}`
 
+/** A whole number with the language's thousands separator: 85.000 in Spanish, 85,000 in English. */
+export const thousands = (n: number, lang: Lang): string =>
+  String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, lang === 'es' ? '.' : ',')
+
 /** Every text the mod shows, by language. Functions take what changes; the rest is fixed. */
 export const MESSAGES = {
   es: {
@@ -153,7 +157,7 @@ export const MESSAGES = {
     undoFailed: 'No pude devolver tu texto a la caja.',
     idle: 'Escribe un prompt y pulsa Mejorar en la banda, o usa /mejora.',
     thinking: (who: string) => `${who} está reescribiendo tu prompt…`,
-    boxUntouched: 'Tu caja no cambia hasta que pulses Usar.',
+    boxUntouched: 'Tu caja no cambia hasta que pulses Preparar.',
     failed: (who: string, reason: string) => `${who} no pudo mejorarlo: ${reason}.`,
     boxSame: 'Tu prompt sigue igual en la caja.',
     proposalBy: (who: string) => `Propuesta de ${who}`,
@@ -172,6 +176,36 @@ export const MESSAGES = {
     droppedSome: (added: string, list: string, rest: number) =>
       `Cambios: ${added}. Quitó ${list}${rest > 0 ? ` y ${rest} más` : ''}.`,
     inBox: 'Ya está en tu caja: rellena las etiquetas y pulsa Enter.',
+    // Settings card and Preparar
+    promptTitle: 'Prompt',
+    cardTitle: 'Modelo y effort',
+    cardLooking: 'Haiku está mirando este borrador…',
+    cardFailed: 'Haiku no respondió: sin sugerencia de modelo ni effort.',
+    cardNoJudge: 'Sin Haiku no sé de qué tarea es este prompt: sin sugerencia.',
+    modelRowText: (from: string, to: string, reason: string) => `Modelo: ${from} → ${to} · ${reason}`,
+    rowEffort: (from: string, to: string, reason: string, isLower: boolean) =>
+      `Effort: ${from} → ${to} · ${reason}${isLower ? ' · tarea nueva y el último turno acabó sin errores' : ''}`,
+    reread: (tokens: number | null) =>
+      `Aviso: cambiar de modelo a mitad de sesión rompe la caché. El modelo nuevo relee ${tokens === null ? 'toda la conversación' : `${thousands(tokens, 'es')} tokens`} sin caché y sale más caro.`,
+    cardHold: (effort: string, why: string) => `Effort: te quedas en ${effort} · no lo bajo: ${why}`,
+    holds: {
+      continues: 'el prompt sigue la tarea anterior',
+      errors: 'el último turno tuvo errores',
+      'no-judge': 'sin Haiku no sé si es una tarea nueva',
+    },
+    picked: { use: 'Lo usarás.', discard: 'Lo descartas.' },
+    prepare: 'Preparar',
+    chooseAll: 'Elige Usar o Descartar en cada fila y pulsa Preparar.',
+    partPrompt: 'prompt en la caja',
+    partModel: (model: string) => `modelo ${model}`,
+    partEffort: (effort: string) => `effort ${effort}`,
+    prepared: (parts: string[]) =>
+      parts.length === 0
+        ? 'Nada que preparar: tu caja, tu modelo y tu effort siguen igual.'
+        : `Preparado: ${parts.join(', ')}. Revisa la caja y pulsa Enter.`,
+    prepareFailed: (list: string) => `No se pudo cambiar ${list}. Cámbialo con /model o /effort.`,
+    doneNoPrompt: 'Preparado. Tu prompt sigue como lo escribiste: pulsa Enter cuando quieras.',
+    rowsUndoFailed: 'No pude devolver el modelo o el effort: usa /model o /effort.',
     use: 'Usar',
     discard: 'Descartar',
     undo: 'Deshacer',
@@ -264,7 +298,7 @@ export const MESSAGES = {
     undoFailed: 'Could not put your text back in the box.',
     idle: 'Write a prompt and press Improve in the band, or use /mejora.',
     thinking: (who: string) => `${who} is rewriting your prompt…`,
-    boxUntouched: 'Your box does not change until you press Use.',
+    boxUntouched: 'Your box does not change until you press Prepare.',
     failed: (who: string, reason: string) => `${who} could not improve it: ${reason}.`,
     boxSame: 'Your prompt is unchanged in the box.',
     proposalBy: (who: string) => `${who}'s proposal`,
@@ -283,6 +317,35 @@ export const MESSAGES = {
     droppedSome: (added: string, list: string, rest: number) =>
       `Changes: ${added}. Dropped ${list}${rest > 0 ? ` and ${rest} more` : ''}.`,
     inBox: 'It is in your box: fill in the tags and press Enter.',
+    promptTitle: 'Prompt',
+    cardTitle: 'Model and effort',
+    cardLooking: 'Haiku is reading this draft…',
+    cardFailed: 'Haiku did not answer: no model or effort advice.',
+    cardNoJudge: 'Without Haiku I cannot tell which task this prompt belongs to: no advice.',
+    modelRowText: (from: string, to: string, reason: string) => `Model: ${from} → ${to} · ${reason}`,
+    rowEffort: (from: string, to: string, reason: string, isLower: boolean) =>
+      `Effort: ${from} → ${to} · ${reason}${isLower ? ' · a new task, and the last turn ended without errors' : ''}`,
+    reread: (tokens: number | null) =>
+      `Warning: switching models mid-session breaks the cache. The new model re-reads ${tokens === null ? 'the whole conversation' : `${thousands(tokens, 'en')} tokens`} uncached, which costs more.`,
+    cardHold: (effort: string, why: string) => `Effort: staying at ${effort} · not lowering it: ${why}`,
+    holds: {
+      continues: 'the prompt follows the task before',
+      errors: 'the last turn had errors',
+      'no-judge': 'without Haiku I cannot tell whether it is a new task',
+    },
+    picked: { use: 'You will use it.', discard: 'You discard it.' },
+    prepare: 'Prepare',
+    chooseAll: 'Pick Use or Discard on each row and press Prepare.',
+    partPrompt: 'prompt in the box',
+    partModel: (model: string) => `model ${model}`,
+    partEffort: (effort: string) => `effort ${effort}`,
+    prepared: (parts: string[]) =>
+      parts.length === 0
+        ? 'Nothing to prepare: your box, model and effort stay as they were.'
+        : `Prepared: ${parts.join(', ')}. Review the box and press Enter.`,
+    prepareFailed: (list: string) => `Could not change ${list}. Change it with /model or /effort.`,
+    doneNoPrompt: 'Prepared. Your prompt stays as you wrote it: press Enter when you want.',
+    rowsUndoFailed: 'Could not put the model or effort back: use /model or /effort.',
     use: 'Use',
     discard: 'Discard',
     undo: 'Undo',

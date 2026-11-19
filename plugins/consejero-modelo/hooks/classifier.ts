@@ -38,6 +38,11 @@ export type Rules = {
   effortStep: { enabled: boolean; ceiling: Effort; source: string; conflicts: string[] }
   /** Limits of the Haiku classifier: the typing pause before a call, time and text caps. */
   haiku: { pauseMs: number; timeoutMs: number; maxChars: number }
+  /**
+   * The settings card after the first prompt, effort alone: how many levels it may go down at once,
+   * and how much of the assistant's last reply Haiku reads as context.
+   */
+  effortLater: { maxStepsDown: number; contextChars: number; source: string }
   /** The prompt improver: its instructions, each with its source, and its limits. `{name}` in an instruction is the limit of that name. */
   improver: {
     instructions: Array<{ text: string; source: string }>

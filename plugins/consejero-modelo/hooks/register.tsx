@@ -11,8 +11,9 @@ import type { Rules } from './classifier'
 import { haikuTail, haikuSentence, readHaikuReply, haikuRequest } from './haiku'
 import { isImprovable, modelName } from './improver'
 import { detectLang, FALLBACK, langFromSetting, t } from './i18n'
-import { drawPane, forgetProposal, openImprover, PANEL, requestImprovement, runImprovement, paintTags, EMPTY, IMPROVER_SHAPE } from './panel'
-import type { Classification, Advice, HaikuState, Lang, Settings, Assessment } from '../types'
+import { drawPane, forgetProposal, openImprover, PANEL, runImprovement, paintTags, EMPTY, IMPROVER_SHAPE } from './panel'
+import { forgetTask, readSettings, startCard, writeRow } from './card'
+import type { Classification, Advice, HaikuState, Lang, Assessment } from '../types'
 
 const RULES: Rules = rulesData
 
@@ -36,6 +37,8 @@ const improver = atom({ plugin: 'consejero-modelo', key: 'improver' } as const, 
 const lang = atom({ plugin: 'consejero-modelo', key: 'lang' } as const, FALLBACK as Lang)
 // The /config theme, read by panel.tsx for the signature's colour set.
 const theme = atom({ plugin: 'consejero-modelo', key: 'theme' } as const, '')
+// True once Preparar applied the picks, until the next prompt is sent: the band stays quiet meanwhile.
+const settled = atom({ plugin: 'consejero-modelo', key: 'settled' } as const, false)
 
 /** Follows the language of a text when it shows one; a text that says too little keeps the current language. */
 async function followLanguage($: EngineInterface, text: string) {
@@ -66,13 +69,6 @@ async function refreshTheme($: EngineInterface) {
 
 async function markHaiku($: EngineInterface, step: HaikuState['step'], detail = '') {
   await update($, haiku, before => (before.step === step && before.detail === detail ? before : { step, detail }))
-}
-
-// Reason: the engine has no call for the session's effort; before the first request the /config row is the only reading.
-async function readSettings($: EngineInterface): Promise<Settings> {
-  const [model, rows] = await Promise.all([$.session.model(), $.config.list()])
-  const row = rows.find(f => /effort/i.test(f.key))
-  return { model, effort: effortOf(row?.value) }
 }
 
 const sameAssessment = (a: Assessment | null, b: Assessment | null): boolean => JSON.stringify(a) === JSON.stringify(b)
@@ -166,16 +162,6 @@ async function note($: EngineInterface, text: string) {
   }
 }
 
-// One /config row written as the person would in the menu; the engine's refusal comes back as text.
-async function writeRow($: EngineInterface, key: string, value: string, language: Lang): Promise<string | null> {
-  try {
-    const r = await $.config.set({ key, value })
-    return r.deny ?? null
-  } catch {
-    return t(language).menuRefused
-  }
-}
-
 // The Aplicar button: the person takes the suggestion, so its model and effort are set. The draft is not touched.
 async function applyAdvice($: EngineInterface, advice: Advice) {
   const failures: string[] = []
@@ -249,10 +235,23 @@ async function turnAdvisor($: EngineInterface, on: boolean) {
   await note($, draft)
 }
 
+// The pane for one draft: opened in the caller's own hook, then the rewrite and the settings card in the background.
+async function improve($: EngineInterface, text: string): Promise<boolean> {
+  const mine = await openImprover($, text, improverModel)
+  if (mine === null) return false
+  detach(runImprovement($, text, improverModel, mine))
+  const isFirstPrompt = await read($, isFirst)
+  const off = advisorOff || (await read($, isOff))
+  // Reason: on the first prompt the band's own Haiku answer for this very draft is reused, never asked twice.
+  const known = isFirstPrompt ? (seen.get(text) ?? null) : null
+  detach(startCard($, text, { isFirst: isFirstPrompt, useHaiku, isOff: off, known }))
+  return true
+}
+
 // The band's Mejorar: the box as it stands now, not the last edit the mod heard.
 async function improveBox($: EngineInterface) {
   const box = await $.prompt.read()
-  await requestImprovement($, box.text === '' ? draft : box.text, improverModel)
+  await improve($, box.text === '' ? draft : box.text)
 }
 
 // Background work never holds a key or a prompt; an engine call that fails there leaves the band as it was.
@@ -285,7 +284,11 @@ export const register: Register = (on, options) => {
     // Reason: a pane that will not close must not keep a new conversation from opening the consejo window.
     await forgetProposal($).catch(() => undefined)
     // Reason: a bare /mejora improves this conversation's last draft, never one from before a /clear.
-    if (isNew) lastWritten = ''
+    if (isNew) {
+      lastWritten = ''
+      forgetTask()
+    }
+    await update($, settled, () => false)
     await update($, isFirst, () => isNew)
     await update($, isOff, () => advisorOff)
     await update($, current, () => null)
@@ -318,6 +321,7 @@ export const register: Register = (on, options) => {
       detach(update($, current, () => null))
       // Reason: a proposal belongs to the draft it was made for; once a prompt is sent it is stale.
       detach(forgetProposal($))
+      detach(update($, settled, () => false))
     }
 
     return next(e)
@@ -364,8 +368,7 @@ export const register: Register = (on, options) => {
     if (!isImprovable(text, RULES)) return { text: t(language).nothingToImprove, isTextDisplayOnly: true }
     // Reason: the pane opens here, inside the command's own hook, so the engine places it at any width;
     // the model call takes seconds, and a command hook that waits on it freezes the command.
-    const mine = await openImprover($, text, improverModel)
-    if (mine !== null) detach(runImprovement($, text, improverModel, mine))
+    await improve($, text)
 
     return { text: t(language).preparing(modelName(improverModel, language)), isTextDisplayOnly: true }
   })
@@ -381,6 +384,8 @@ export const register: Register = (on, options) => {
 
   on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
     if (e.props.hasSurvey) return next(e)
+    // Preparar applied the picks: neither advice nor Mejorar until the next prompt is sent (Javi's choice, 0.8.0).
+    if (await read($, settled)) return next(e)
     const assessment = await read($, current)
     const language = await read($, lang)
     const m = t(language)

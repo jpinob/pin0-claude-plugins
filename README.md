@@ -8,7 +8,7 @@ Mods and plugins for [Claude Code](https://code.claude.com) that I use every day
 
 | Plugin | What it does |
 | --- | --- |
-| [consejero-modelo](plugins/consejero-modelo) | While you write the first prompt of a session, a line above the prompt suggests a model and effort. On any prompt, `Improve` asks a model for a better version and shows it in a pane, with tags for what only you can answer. It speaks Spanish or English, following your draft. |
+| [consejero-modelo](plugins/consejero-modelo) | While you write the first prompt of a session, a line above the prompt suggests a model and effort. On any prompt, `Improve` asks a model for a better version and shows it in a pane, with tags for what only you can answer and a model and effort card for that draft. It speaks Spanish or English, following your draft. |
 | [session-overview](plugins/session-overview) | A pane beside the chat with the session's model, effort, cost and time, the folder, branch and worktree, how full the context window is, how much of the 5-hour and weekly limits is left, and the files the session created or modified, each one a click away in VS Code. |
 
 ![consejero-modelo's Improved prompt pane, with tags for what only you can answer](plugins/consejero-modelo/docs/pane-en.png)

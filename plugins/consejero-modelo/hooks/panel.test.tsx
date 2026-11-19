@@ -154,7 +154,7 @@ test('on the first prompt, Mejorar sits next to the advice', WORDS_ONLY, async (
   await band.unmount()
 })
 
-test('Mejorar shows the proposal in the pane and leaves the box alone until Usar', WORDS_ONLY, async ($, on) => {
+test('Mejorar shows the proposal in the pane and leaves the box alone until Preparar', WORDS_ONLY, async ($, on) => {
   const m = engine(on)
   await afterFirst($, m)
   await typeDraft($, DRAFT)
@@ -177,13 +177,16 @@ test('Mejorar shows the proposal in the pane and leaves the box alone until Usar
   // The capital and the full stop are no change; the five new words are.
   expect(readBack).toContain('Cambios: añadió 5 palabras. No quitó nada de lo tuyo.')
   expect(readBack).not.toContain('Más larga de lo pedido')
-  expect(await buttons(panel)).toEqual(['use', 'discard'])
+  // Two cards: the prompt, and the effort row the words give for a bug fix (medium → high). No Preparar yet.
+  expect(readBack).toContain('Effort: medium → high · depuración')
+  expect(readBack).toContain('Elige Usar o Descartar en cada fila y pulsa Preparar.')
+  expect(await buttons(panel)).toEqual(['use', 'discard', 'use-effort', 'discard-effort', 'close'])
   await panel.unmount()
   // Nothing is ever sent by the mod.
   expect(m.sends.length).toBe(1)
 })
 
-test('Usar puts the proposal in the box and Deshacer restores the exact text', WORDS_ONLY, async ($, on) => {
+test('Usar and Preparar put the proposal in the box, and Deshacer restores the exact text', WORDS_ONLY, async ($, on) => {
   const m = engine(on)
   await afterFirst($, m)
   await typeDraft($, DRAFT)
@@ -191,6 +194,11 @@ test('Usar puts the proposal in the box and Deshacer restores the exact text', W
 
   const panel = await $.ui.mount({ ...PANEL, surface: 'desktop' })
   await panel.press({ key: 'use' })
+  // A pick alone changes nothing; Preparar waits for the effort row's pick too.
+  expect(m.fills).toEqual([])
+  expect(await buttons(panel)).not.toContain('prepare')
+  await panel.press({ key: 'discard-effort' })
+  await panel.press({ key: 'prepare' })
   expect(m.fills).toEqual([PROPOSAL])
   expect(m.box).toBe(PROPOSAL)
   // The tags go into the box painted by level: red for required, green for optional.
@@ -204,8 +212,8 @@ test('Usar puts the proposal in the box and Deshacer restores the exact text', W
   await panel.press({ key: 'undo' })
   expect(m.fills).toEqual([PROPOSAL, DRAFT])
   expect(m.box).toBe(DRAFT)
-  // Back to the proposal, so it can be used again.
-  expect(await buttons(panel)).toEqual(['use', 'discard'])
+  // Back to the proposal with the picks kept, so it can be prepared again.
+  expect(await buttons(panel)).toEqual(['use', 'discard', 'use-effort', 'discard-effort', 'prepare', 'close'])
   await panel.unmount()
   expect(m.sends.length).toBe(1)
 })
@@ -237,7 +245,8 @@ test('a failure or an invalid reply says so and leaves the box as it was', WORDS
     const readBack = await texts(panel)
     expect(readBack).toContain(`Sonnet no pudo mejorarlo: ${reason}.`)
     expect(readBack).toContain('Tu prompt sigue igual en la caja.')
-    expect(await buttons(panel)).toEqual(['close'])
+    // The settings card still works when the rewrite fails.
+    expect(await buttons(panel)).toEqual(['use-effort', 'discard-effort', 'close'])
     await panel.unmount()
   }
   expect(m.fills).toEqual([])

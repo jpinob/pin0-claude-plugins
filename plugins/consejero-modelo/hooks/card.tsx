@@ -1,0 +1,240 @@
+// The pane's settings card: Haiku's model and effort for the draft the improver rewrites, one row each,
+// and the /config writes Preparar makes. The rows are decided in effort.ts; this file talks to the engine.
+import { atom, read, update } from 'claude-code'
+import type { EngineInterface, RenderElement, RenderInput } from 'claude-code'
+
+import rulesData from '../rules'
+import type { CardRow, Choice, Classification, Effort, Lang, Settings, SettingsCard } from '../types'
+import { findRow, effortValue, modelValue } from './apply'
+import { classify, effortOf } from './classifier'
+import type { Rules } from './classifier'
+import { cardRows, NO_EVIDENCE, turnEvidence } from './effort'
+import type { Message, TurnEvidence } from './effort'
+import { haikuRequest, haikuTaskRequest, readHaikuReply, readStandalone } from './haiku'
+import { FALLBACK, t } from './i18n'
+import { paneColors } from './palette'
+
+const RULES: Rules = rulesData
+
+export const HIDDEN: SettingsCard = { step: 'hidden', rows: [], note: { es: '', en: '' }, isFirst: false }
+// Reason: the shape tag declines a card an older version stored in another form.
+export const CARD_SHAPE = 'card-1'
+const card = atom({ plugin: 'consejero-modelo', key: 'card' } as const, HIDDEN, { shape: CARD_SHAPE })
+const lang = atom({ plugin: 'consejero-modelo', key: 'lang' } as const, FALLBACK as Lang)
+const theme = atom({ plugin: 'consejero-modelo', key: 'theme' } as const, '')
+
+// Reason: each card is stamped, so a late Haiku answer after Descartar, a send or a newer Mejorar is dropped.
+let stamp = 0
+let controller = new AbortController()
+// The task memory: the last draft Haiku read as a task of its own, so a run of "yes" keeps its task.
+let task: string | null = null
+
+// Reason: the engine has no call for the session's effort; before the first request the /config row is the only reading.
+export async function readSettings($: EngineInterface): Promise<Settings> {
+  const [model, rows] = await Promise.all([$.session.model(), $.config.list()])
+  const row = rows.find(f => /effort/i.test(f.key))
+  return { model, effort: effortOf(row?.value) }
+}
+
+// One /config row written as the person would in the menu; the engine's refusal comes back as text.
+export async function writeRow($: EngineInterface, key: string, value: string, language: Lang): Promise<string | null> {
+  try {
+    const r = await $.config.set({ key, value })
+    return r.deny ?? null
+  } catch {
+    return t(language).menuRefused
+  }
+}
+
+/** A new conversation keeps no task from the one before. */
+export function forgetTask() {
+  task = null
+}
+
+/** The card goes: a call in flight is cut, and its answer is not shown. */
+export async function resetCard($: EngineInterface) {
+  stamp += 1
+  controller.abort()
+  await update($, card, before => (before.step === 'hidden' ? before : HIDDEN))
+}
+
+/** What the card is started from: where the conversation is, and what the band already knows. */
+export type CardStart = {
+  isFirst: boolean
+  useHaiku: boolean
+  isOff: boolean
+  /** Haiku's classification of this very draft from the band's own call, so it is not asked twice. */
+  known: Classification | null
+}
+
+async function evidenceNow($: EngineInterface): Promise<{ evidence: TurnEvidence; tokens: number | null }> {
+  try {
+    const [messages, usage] = await Promise.all([$.session.messages({ last: 60 }), $.session.usage()])
+    const evidence = 'deny' in messages ? NO_EVIDENCE : turnEvidence(messages as readonly Message[], RULES.effortLater.contextChars)
+    return { evidence, tokens: usage.context.tokens ?? null }
+  } catch {
+    return { evidence: NO_EVIDENCE, tokens: null }
+  }
+}
+
+/** Haiku's reading of a draft: the classification and, after the first prompt, whether it is a task of its own. */
+async function askHaiku(
+  $: EngineInterface,
+  text: string,
+  evidence: TurnEvidence | null,
+): Promise<{ classification: Classification; standalone: boolean | null } | null> {
+  const { system, prompt } =
+    evidence === null
+      ? haikuRequest(text, RULES)
+      : haikuTaskRequest(text, RULES, {
+          task,
+          prompts: evidence.prompts,
+          lastReply: evidence.lastReply,
+          summary: `Último turno del asistente: ${evidence.tools} herramientas, ${evidence.edits} ediciones de archivos, ${evidence.errors} errores.`,
+        })
+  const r = await $.model.complete(
+    { model: 'haiku', system, prompt, maxTokens: 400, effort: 'low', timeoutMs: RULES.haiku.timeoutMs },
+    { signal: controller.signal },
+  )
+  if (!r.isAnswered) return null
+  const classification = readHaikuReply(r.text, RULES)
+  if (classification === null) return null
+
+  return { classification, standalone: evidence === null ? true : readStandalone(r.text) }
+}
+
+/**
+ * Fills the card for `text`. First prompt: the band's Haiku answer when it has one, else one call.
+ * After it: one Haiku call with the task memory and the last turn's evidence; in words mode, the words alone.
+ */
+export async function startCard($: EngineInterface, text: string, start: CardStart) {
+  const mine = ++stamp
+  controller.abort()
+  controller = new AbortController()
+  if (start.isOff) {
+    await update($, card, () => HIDDEN)
+    return
+  }
+  await update($, card, () => ({ ...HIDDEN, step: 'looking' as const, isFirst: start.isFirst }))
+  const settings = await readSettings($)
+  const { evidence, tokens } = start.isFirst ? { evidence: NO_EVIDENCE, tokens: null } : await evidenceNow($)
+
+  let classification: Classification | null = null
+  let standalone: boolean | null = null
+  let byWords = false
+  if (start.known !== null) {
+    classification = start.known
+    standalone = true
+  } else if (start.useHaiku) {
+    const reading = await askHaiku($, text, start.isFirst ? null : evidence)
+    classification = reading?.classification ?? null
+    standalone = reading?.standalone ?? null
+  } else {
+    classification = classify(text, RULES)
+    byWords = true
+  }
+  if (mine !== stamp) return
+  if (classification === null) {
+    await update($, card, () => ({ ...HIDDEN, step: 'failed' as const, isFirst: start.isFirst }))
+    return
+  }
+  // Reason: the first prompt always starts a task; later, only a draft Haiku read as one replaces it.
+  if (start.isFirst || standalone === true) task = text.trim().slice(0, 300)
+  const proposal = cardRows(classification, settings, RULES, { isFirst: start.isFirst, standalone, evidence, tokens, byWords })
+  await update($, card, () => ({ step: 'ready' as const, rows: proposal.rows, note: proposal.note, isFirst: start.isFirst }))
+}
+
+/** A pick on one row; pressing the same pick again keeps it. */
+export async function chooseRow($: EngineInterface, kind: CardRow['kind'], choice: Choice) {
+  await update($, card, before => ({ ...before, rows: before.rows.map(r => (r.kind === kind ? { ...r, choice } : r)) }))
+}
+
+/** True while some row of a ready card still waits for a pick; a card still looking waits too. */
+export const cardPending = (c: SettingsCard): boolean =>
+  c.step === 'looking' || (c.step === 'ready' && c.rows.some(r => r.choice === null))
+
+/** What Preparar did to /config: the parts for the toast, the failures, and the rows as they were. */
+export type Applied = { parts: string[]; failures: string[]; rowsBefore: Array<{ key: string; value: string }> }
+
+/** Writes the rows the person picked, model first: a new model can bring its own saved effort. */
+export async function applyCard($: EngineInterface, c: SettingsCard, language: Lang): Promise<Applied> {
+  const m = t(language)
+  const out: Applied = { parts: [], failures: [], rowsBefore: [] }
+  for (const kind of ['model', 'effort'] as const) {
+    const row = c.rows.find(r => r.kind === kind && r.choice === 'use')
+    if (row === undefined) continue
+    const config = findRow(await $.config.list(), kind)
+    if (config === undefined) {
+      out.failures.push(kind === 'model' ? m.noModelRow : m.noEffortRow)
+      continue
+    }
+    const value = kind === 'model' ? modelValue(config, row.value) : effortValue(config, row.value as Effort)
+    const failure = await writeRow($, config.key, value, language)
+    if (failure !== null) {
+      out.failures.push(`${kind === 'model' ? m.rowModel : 'effort'}: ${failure}`)
+      continue
+    }
+    out.rowsBefore.push({ key: config.key, value: String(config.value ?? '') })
+    out.parts.push(kind === 'model' ? m.partModel(row.value) : m.partEffort(row.value))
+  }
+
+  return out
+}
+
+/** Deshacer for the rows: each written back to what it held. True when every one was taken. */
+export async function undoRows($: EngineInterface, rows: ReadonlyArray<{ key: string; value: string }>, language: Lang) {
+  let isOk = true
+  // Reason: written back in reverse, so the model's own saved effort cannot overwrite the effort restored after it.
+  for (const r of [...rows].reverse()) if ((await writeRow($, r.key, r.value, language)) !== null) isOk = false
+  return isOk
+}
+
+/** The card as a bordered box, or null when it is hidden. Locked, after Preparar, it shows the picks without buttons. */
+export async function drawCard($: EngineInterface, e: RenderInput<'Pane'>, isLocked = false): Promise<RenderElement | null> {
+  const c = await read($, card)
+  if (c.step === 'hidden') return null
+  const { Box, Button, Text } = $.ui.resolve(e)
+  const language = await read($, lang)
+  const m = t(language)
+  const colors = paneColors(e.surface, await read($, theme))
+  const body =
+    c.step === 'looking' ? (
+      <Text color="text">{m.cardLooking}</Text>
+    ) : c.step === 'failed' ? (
+      <Text color="text">{m.cardFailed}</Text>
+    ) : c.rows.length === 0 ? (
+      <Text color="text">{c.note[language]}</Text>
+    ) : (
+      <Box flexDirection="column">
+        {c.rows.map(row => (
+          <Box flexDirection="column">
+            <Text color="text">{row.text[language]}</Text>
+            {row.kind === 'model' && !c.isFirst && <Text color={colors.alarm} weight="bold">{m.reread(row.rereadTokens)}</Text>}
+            {isLocked ? (
+              <Text color="text">{row.choice === null ? '' : m.picked[row.choice]}</Text>
+            ) : (
+            <Box>
+              <Button key={`use-${row.kind}`} hotkey={row.kind === 'model' ? 'm' : 'e'} onPress={() => chooseRow($, row.kind, 'use')}>
+                <Text color={colors.action}>{m.use}</Text>
+              </Button>
+              <Button
+                key={`discard-${row.kind}`}
+                label={m.discard}
+                hotkey={row.kind === 'model' ? 'x' : 'r'}
+                onPress={() => chooseRow($, row.kind, 'discard')}
+              />
+              {row.choice !== null && <Text color="text">{m.picked[row.choice]}</Text>}
+            </Box>
+            )}
+          </Box>
+        ))}
+      </Box>
+    )
+
+  return (
+    <Box flexDirection="column" borderStyle="round" paddingX={1}>
+      <Text color="text" weight="bold">{m.cardTitle}</Text>
+      {body}
+    </Box>
+  )
+}
