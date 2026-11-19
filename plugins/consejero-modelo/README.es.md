@@ -12,7 +12,7 @@ Solo sugiere. No cambia el modelo ni el effort por su cuenta: lo hace si pulsas 
 
 Además, en cualquier prompt, el botón `Mejorar` pide a un modelo una versión mejor de lo que escribiste y te la enseña en un panel, junto a una tarjeta de modelo y effort para ese mismo borrador. Tú eliges qué usas, y el Enter lo pulsas tú.
 
-Versión actual: **0.8.2** (en `.claude-plugin/plugin.json`).
+Versión actual: **0.8.3** (en `.claude-plugin/plugin.json`).
 
 ![El panel Prompt mejorado: la propuesta de Sonnet para un script que borra logs antiguos, con una etiqueta NECESARIO en rojo, tres ESPECIFICAR en amarillo, la línea de cambios y los botones Usar y Descartar](docs/pane-es.png)
 
@@ -240,7 +240,7 @@ claude plugin test .
 
 ## Límites conocidos
 
-- El motor no tiene una llamada para leer el effort de la sesión. Antes de la primera petición el mod lee la fila de effort de `/config`. Si usas la variable `CLAUDE_CODE_EFFORT_LEVEL`, no la ve. Cuando no consigue leer el effort, compara solo el modelo.
+- El motor no tiene una llamada para leer el effort de la sesión, y `/effort` no se ve en la fila de `/config`. El mod lo aprende de tres sitios: un `/effort <nivel>` que escribas, un cambio en `/config` (también los suyos) y el nivel que el motor da al acabar cada turno. En un primer prompt sin nada de eso no puede leerlo: la tarjeta lo dice y compara solo el modelo. Si usas la variable `CLAUDE_CODE_EFFORT_LEVEL`, solo la ve después del primer turno.
 - No mira el estado de `flujo-plan`, que elige modelo por paso. Con un paso activo, la línea compara contra el modelo de tu sesión, no contra el que responderá.
 - La parte de Haiku está probada con respuestas simuladas. Qué contesta el Haiku de verdad, y cuánto acierta, se ve usándolo. También la memoria de tarea: no está probado con prompts reales si Haiku distingue un "sí" de una tarea nueva.
 - En VS Code no se ven los colores del tema, así que allí el panel usa los colores fijos de la firma, medidos a 4,5:1 sobre los fondos de VS Code. Los colores de las etiquetas en la propia caja del prompt siguen siendo los del tema.
@@ -251,6 +251,8 @@ claude plugin test .
 - La firma "made with ♥ and Ai by Pin0" va al pie del panel "Prompt mejorado" y al final de `/consejo`. En la banda no cabe: es una sola línea.
 
 ## Versiones
+
+- **0.8.3**: el effort se lee de `/effort <nivel>`, de `/config` y del final de cada turno, porque `/effort` no se ve en la fila de `/config` (visto por Javi en VS Code y en la terminal).
 
 - **0.8.2**: la tarjeta nunca calla sobre el effort: sin fila de effort dice que se queda, por qué no lo baja, o que no puede leerlo en `/config`.
 

@@ -29,11 +29,22 @@ let controller = new AbortController()
 // The task memory: the last draft Haiku read as a task of its own, so a run of "yes" keeps its task.
 let task: string | null = null
 
-// Reason: the engine has no call for the session's effort; before the first request the /config row is the only reading.
+// The session's effort as the mod last learned it: a `/effort <level>` typed, a /config write, or the level the
+// engine reports at the end of each turn. Reason: the engine has no call for the session's effort, and `/effort`
+// does not show in the /config row (seen by Javi on 0.8.2, in VS Code and in the terminal).
+let knownEffort: Effort | null = null
+
+/** Learns the session's effort from any of its sources; `auto` forgets it, anything else is ignored. */
+export function noteEffort(value: unknown) {
+  if (typeof value === 'string' && value.trim().toLowerCase() === 'auto') knownEffort = null
+  else knownEffort = effortOf(typeof value === 'string' ? value.trim() : value) ?? knownEffort
+}
+
+/** The model, and the effort: the one the mod learned, else the /config row, else unknown. */
 export async function readSettings($: EngineInterface): Promise<Settings> {
   const [model, rows] = await Promise.all([$.session.model(), $.config.list()])
   const row = rows.find(f => /effort/i.test(f.key))
-  return { model, effort: effortOf(row?.value) }
+  return { model, effort: knownEffort ?? effortOf(row?.value) }
 }
 
 // One /config row written as the person would in the menu; the engine's refusal comes back as text.
@@ -44,6 +55,12 @@ export async function writeRow($: EngineInterface, key: string, value: string, l
   } catch {
     return t(language).menuRefused
   }
+}
+
+/** A fresh load knows nothing yet: no task and no effort. Reason: module values outlive a test, not a reload. */
+export function startOver() {
+  task = null
+  knownEffort = null
 }
 
 /** A new conversation keeps no task from the one before. */
@@ -175,6 +192,7 @@ export async function applyCard($: EngineInterface, c: SettingsCard, language: L
       continue
     }
     out.rowsBefore.push({ key: config.key, value: String(config.value ?? '') })
+    if (kind === 'effort') noteEffort(row.value)
     out.parts.push(kind === 'model' ? m.partModel(displayName(row.value)) : m.partEffort(row.value))
   }
 
@@ -185,7 +203,10 @@ export async function applyCard($: EngineInterface, c: SettingsCard, language: L
 export async function undoRows($: EngineInterface, rows: ReadonlyArray<{ key: string; value: string }>, language: Lang) {
   let isOk = true
   // Reason: written back in reverse, so the model's own saved effort cannot overwrite the effort restored after it.
-  for (const r of [...rows].reverse()) if ((await writeRow($, r.key, r.value, language)) !== null) isOk = false
+  for (const r of [...rows].reverse()) {
+    if ((await writeRow($, r.key, r.value, language)) !== null) isOk = false
+    else if (/effort/i.test(r.key)) noteEffort(r.value)
+  }
   return isOk
 }
 

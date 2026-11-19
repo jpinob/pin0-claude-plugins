@@ -12,7 +12,7 @@ import { haikuTail, haikuSentence, readHaikuReply, haikuRequest } from './haiku'
 import { isImprovable, modelName } from './improver'
 import { detectLang, FALLBACK, langFromSetting, t } from './i18n'
 import { drawPane, forgetProposal, openImprover, PANEL, runImprovement, paintTags, EMPTY, IMPROVER_SHAPE } from './panel'
-import { forgetTask, readSettings, startCard, writeRow } from './card'
+import { forgetTask, noteEffort, readSettings, startCard, startOver, writeRow } from './card'
 import type { Classification, Advice, HaikuState, Lang, Assessment } from '../types'
 
 const RULES: Rules = rulesData
@@ -265,6 +265,7 @@ export const register: Register = (on, options) => {
   draft = ''
   lastWritten = ''
   forget()
+  startOver()
 
   on('session.start', async ($, e, next) => {
     detach(refreshTheme($))
@@ -314,6 +315,8 @@ export const register: Register = (on, options) => {
 
   // The first real prompt closes the window. `e` goes down exactly as it came.
   on('prompt.submit', ($, e, next) => {
+    // `/effort high` sets the session's effort without touching the /config row, so the mod reads it here.
+    if (e.command?.name === 'effort') noteEffort(e.command.args.split(/\s+/)[0] ?? '')
     if (e.command === undefined && e.isMeta !== true) {
       stopHaiku()
       stamp += 1
@@ -323,6 +326,13 @@ export const register: Register = (on, options) => {
       detach(forgetProposal($))
       detach(update($, settled, () => false))
     }
+
+    return next(e)
+  })
+
+  // Each turn ends with the effort it ran at: the surest reading the mod gets.
+  on('classic.Stop', ($, e, next) => {
+    noteEffort(e.effort?.level)
 
     return next(e)
   })
@@ -338,6 +348,7 @@ export const register: Register = (on, options) => {
     const result = await next(e)
     // A new theme changes the signature's colour set at once.
     if (e.key === 'theme' && !('deny' in result)) await update($, theme, () => (typeof e.value === 'string' ? e.value : ''))
+    if (/effort/i.test(e.key) && !('deny' in result)) noteEffort(e.value)
     detach(note($, draft))
 
     return result

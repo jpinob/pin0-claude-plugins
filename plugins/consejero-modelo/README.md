@@ -12,7 +12,7 @@ It only suggests. It never changes the model or the effort on its own: it does s
 
 On any prompt, the `Improve` button also asks a model for a better version of what you wrote and shows it in a pane, next to a model and effort card for that same draft. You pick what to use, and you press Enter yourself.
 
-Current version: **0.8.2** (in `.claude-plugin/plugin.json`).
+Current version: **0.8.3** (in `.claude-plugin/plugin.json`).
 
 ![The Improved prompt pane: Sonnet's proposal for "add dark mode to the settings page", with three SPECIFY tags in yellow, one OPTIONAL tag in green, a line of changes and the Use and Discard buttons](docs/pane-en.png)
 
@@ -240,7 +240,7 @@ claude plugin test .
 
 ## Known limits
 
-- The engine has no call to read the session's effort. Before the first request the mod reads the effort row of `/config`. If you use the `CLAUDE_CODE_EFFORT_LEVEL` variable, it does not see it. When it cannot read the effort, it compares the model alone.
+- The engine has no call to read the session's effort, and `/effort` does not show in the `/config` row. The mod learns it from three places: a `/effort <level>` you type, a change in `/config` (its own included), and the level the engine reports at the end of each turn. On a first prompt with none of those, it cannot read it: the card says so and compares the model alone. If you use the `CLAUDE_CODE_EFFORT_LEVEL` variable, it only sees it after the first turn.
 - It does not look at `flujo-plan`'s state, which picks a model per step. With a step active, the line compares against your session's model, not the one that will answer.
 - The Haiku part is tested with simulated answers. What the real Haiku answers, and how often it is right, shows in use. That goes for the task memory too: whether Haiku tells a "yes" from a new task is untested on real prompts.
 - In VS Code the theme colours do not show, so the pane uses the signature's fixed colours there, measured at 4.5:1 on VS Code's backgrounds. The colours of the tags in the prompt box itself stay the theme's.
@@ -251,6 +251,8 @@ claude plugin test .
 - The signature "made with ♥ and Ai by Pin0" sits at the foot of the "Improved prompt" pane and at the end of `/consejo`. It does not fit in the band, which is a single line.
 
 ## Versions
+
+- **0.8.3**: the effort is read from `/effort <level>`, from `/config` and from the end of each turn, since `/effort` does not show in the `/config` row (seen by Javi in VS Code and in the terminal).
 
 - **0.8.2**: the card never stays silent about the effort: without an effort row it says the effort stays, why it is not lowered, or that it cannot read it from `/config`.
 

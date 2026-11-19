@@ -59,6 +59,7 @@ function engine(on: any): Engine {
     return { value: e.value }
   })
   on('classic.SessionStart', () => ({}))
+  on('classic.Stop', () => ({}))
   on('command.register', (_: unknown, e: any) => ({ value: { command: e.name } }))
   on('prompt.edit', (_: unknown, e: any) => {
     m.box = e.text.slice(0, e.start) + e.inputText + e.text.slice(e.end)
@@ -219,4 +220,33 @@ test('in VS Code the pane paints with fixed colours: the theme keys do not show 
   const tall = await term.findAll({})
   expect(tall[tall.findIndex((x: any) => x.type === 'Button' && x.key === 'use') + 1]?.props?.color).toBe('success')
   await term.unmount()
+})
+
+test('the effort comes from /effort and from the end of each turn when /config has no effort row value', async ($, on) => {
+  const m = engine(on)
+  // As seen by Javi in VS Code and the terminal: the /config row holds no level, so it cannot be compared.
+  delete (m.rows as Record<string, string>).effortLevel
+  await $.classic.SessionStart({ source: 'startup', cwd: '/' })
+  await mejora($, TASK)
+  let ui = await $.ui.mount(pane('terminal'))
+  expect(await texts(ui)).toContain('Effort: no puedo leer el tuyo en /config, así que no lo comparo.')
+  await ui.unmount()
+
+  // `/effort xhigh` typed: the card now compares against it (the migration's rule asks for medium).
+  await $.prompt.submit({ text: '/effort xhigh', command: { name: 'effort', args: 'xhigh' } } as any)
+  await mejora($, TASK)
+  ui = await $.ui.mount(pane('terminal'))
+  expect(await texts(ui)).toContain('Effort: xhigh → medium')
+  await ui.unmount()
+
+  // A turn ends at low: that is the effort the next card starts from. The session is on Sonnet and the rules
+  // want Opus, so the effort-first step raises one level instead of switching the model.
+  await $.prompt.submit({ text: TASK } as any)
+  await ($ as any).classic.Stop({ session_id: 's', transcript_path: '/t', cwd: '/', hook_event_name: 'Stop', stop_hook_active: false, effort: { level: 'low' } })
+  await settle()
+  m.haikuReply = '{"modelo":"ninguna","effort":"max-sin-supervision","sola":false}'
+  await mejora($, YES)
+  ui = await $.ui.mount(pane('terminal'))
+  expect(await texts(ui)).toContain('Effort: low → medium · sin regla clara: antes de Opus, sube el effort')
+  await ui.unmount()
 })
