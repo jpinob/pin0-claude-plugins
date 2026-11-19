@@ -371,3 +371,18 @@ test('Usar is drawn in the theme green and Descartar stays neutral', WORDS_ONLY,
   expect(all[at('discard') + 1]?.type).not.toBe('Text')
   await panel.unmount()
 })
+
+test('/consejo and /mejora are registered in a session an SDK host starts, not only under the REPL', WORDS_ONLY, async ($, on) => {
+  // Reason: engine() already answers command.register, and the kit takes one hook per event, so this test stands alone.
+  on('config.list', () => ({ value: [] }))
+  const registered: string[] = []
+  on('session.start', (_: unknown, e: any) => ({ cwd: e.cwd }))
+  on('command.register', (_: unknown, e: any) => {
+    registered.push(e.name)
+    return { value: { command: e.name } }
+  })
+  // An SDK host, such as the VS Code extension, draws nowhere at start and has no person at a REPL.
+  await $.session.start({ cwd: '/', surface: null, isInteractive: false } as any)
+  await settle()
+  expect(registered.sort()).toEqual(['consejo', 'mejora'])
+})

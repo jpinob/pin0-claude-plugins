@@ -63,10 +63,22 @@ let controller: AbortController | null = null
 
 /** Asks the model for a better version of `text` and shows it in the pane. The box is not touched. */
 export async function requestImprovement($: EngineInterface, text: string, model: string) {
+  const mine = await openImprover($, text, model)
+  if (mine !== null) await runImprovement($, text, model, mine)
+}
+
+/**
+ * The pane, open and showing "thinking", or null when it cannot be: a draft too short, or no room.
+ * Reason: the engine places a pane at any width only when it is opened inside the hook of the command the
+ * person typed or the button they pressed; opened later, in the background, a terminal under 144 columns
+ * leaves it undrawn (seen by Javi on 0.7.4 in VS Code's integrated terminal). So callers open it first,
+ * in their own hook, and only the model call runs in the background.
+ */
+export async function openImprover($: EngineInterface, text: string, model: string): Promise<number | null> {
   const m = t(await read($, lang))
   if (!isImprovable(text, RULES)) {
     $.ui.toast(m.writeMore(RULES.minChars))
-    return
+    return null
   }
   controller?.abort()
   controller = new AbortController()
@@ -78,9 +90,15 @@ export async function requestImprovement($: EngineInterface, text: string, model
     turn += 1
     await update($, improver, () => EMPTY)
     $.ui.toast(m.noRoom(opened.reason))
-    return
+    return null
   }
 
+  return mine
+}
+
+/** The paid call for an opened pane; `mine` is the stamp openImprover gave, so a newer request wins. */
+export async function runImprovement($: EngineInterface, text: string, model: string, mine: number) {
+  if (mine !== turn || controller === null) return
   const { system, prompt } = improverRequest(text, RULES)
   const { maxTokens, timeoutMs, effort } = RULES.improver
   const r = await $.model.complete({ model: model, system, prompt, maxTokens, effort, timeoutMs }, { signal: controller.signal })
