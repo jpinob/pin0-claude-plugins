@@ -12,7 +12,7 @@ Solo sugiere. No cambia el modelo ni el effort por su cuenta: lo hace si pulsas 
 
 Además, en cualquier prompt, el botón `Mejorar` pide a un modelo una versión mejor de lo que escribiste y te la enseña en un panel, junto a una tarjeta de modelo y effort para ese mismo borrador. Tú eliges qué usas, y el Enter lo pulsas tú.
 
-Versión actual: **0.8.6** (en `.claude-plugin/plugin.json`).
+Versión actual: **0.8.7** (en `.claude-plugin/plugin.json`).
 
 ![El panel Prompt mejorado: la propuesta de Sonnet para un script que borra logs antiguos, con una etiqueta NECESARIO en rojo, tres ESPECIFICAR en amarillo, la línea de cambios y los botones Usar y Descartar](docs/pane-es.png)
 
@@ -47,7 +47,7 @@ La línea trae dos botones propios: `Aplicar` y `Desactivar`. Haz clic, o enfoca
 
 `Aplicar` escribe el modelo y el effort sugeridos en sus filas de `/config`, igual que si los cambiaras tú en el menú. Tu prompt se queda en la caja: después solo falta Enter. Un aviso corto dice qué se aplicó.
 
-Dos cosas a saber. Cambiar el modelo desde `/config` puede guardarlo como modelo por defecto de las sesiones nuevas. Y si el motor niega el cambio, el aviso lo dice y tendrás que usar `/model` o `/effort`.
+Dos cosas a saber. Cambiar el modelo desde `/config` puede guardarlo como modelo por defecto de las sesiones nuevas. Cuando `/config` no tiene fila de effort, el mod ejecuta `/effort <nivel>` como lo harías tú, y eso guarda el nivel como el de ese modelo para las sesiones siguientes; `Deshacer` devuelve el nivel que tenías, o ejecuta `/effort auto` si era el que trae el modelo por defecto. Y si el motor niega el cambio, el aviso lo dice y tendrás que usar `/model` o `/effort`.
 
 `Desactivar` apaga el consejero toda la sesión, también tras `/clear`: ni consejo ni llamadas a Haiku. En el primer prompt la banda dice entonces "Consejero desactivado" y ofrece `Activar`, que devuelve el consejo para el borrador de la caja. El botón `Mejorar` se queda en los dos casos.
 
@@ -63,7 +63,7 @@ Pulsa `Mejorar` en la banda, o escribe `/mejora`. Pasa esto:
 4. Cada tarjeta y cada fila tiene `Usar`, en el verde de tu tema, y `Descartar`. Solo apuntan lo que eliges; todavía no cambia nada.
 5. Cuando todas las filas tienen elección, sale `Preparar` debajo de las tarjetas. Aplica lo que elegiste: la propuesta va a la caja, y el modelo y el effort a sus filas de `/config`. Nunca envía nada.
 6. Después de `Preparar`, el panel deja una línea fija con lo aplicado y lo descartado, por ejemplo `Aplicado: prompt en la caja, modelo Fable. Descartado: effort.`: el aviso se va en segundos, y VS Code no enseña el modelo en ningún sitio. `Deshacer` devuelve a la caja exactamente lo que tenía, y el modelo y el effort que tenías.
-7. Encima del pie, la versión de la copia que se ejecuta (`consejero-modelo v0.8.6`): un plugin instalado corre desde una copia, que puede ir por detrás de la carpeta que descomprimiste. Al pie, la firma "made with ♥ and Ai by Pin0", con los colores de tu tema claro u oscuro. Si el panel es estrecho, sale corta: "♥ Ai Pin0".
+7. Encima del pie, la versión de la copia que se ejecuta (`consejero-modelo v0.8.7`): un plugin instalado corre desde una copia, que puede ir por detrás de la carpeta que descomprimiste. Al pie, la firma "made with ♥ and Ai by Pin0", con los colores de tu tema claro u oscuro. Si el panel es estrecho, sale corta: "♥ Ai Pin0".
 
 ### Etiquetas por importancia
 
@@ -251,6 +251,8 @@ claude plugin test .
 - La firma "made with ♥ and Ai by Pin0" va al pie del panel "Prompt mejorado" y al final de `/consejo`. En la banda no cabe: es una sola línea.
 
 ## Versiones
+
+- **0.8.7**: sin fila de effort en `/config` (tu caso), `Preparar` y `Aplicar` ejecutan `/effort <nivel>`, y `Deshacer` devuelve el effort; la versión encima de la firma sale del código, porque leer el manifiesto no mostraba nada en Windows.
 
 - **0.8.6**: el effort se lee en el mismo orden que Claude Code, incluido el nivel que `/effort` guarda en `modelSettings` y el que trae el modelo por defecto; `/effort` lo guarda ahí y en la 0.8.5 nunca llegaba al mod (visto por Javi).
 

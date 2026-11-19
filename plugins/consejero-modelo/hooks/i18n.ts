@@ -87,6 +87,7 @@ export const MESSAGES = {
     rowModel: 'modelo',
     noModelRow: 'no hay fila de modelo en /config',
     noEffortRow: 'no hay fila de effort en /config',
+    effortCommandFailed: '/effort no se pudo ejecutar',
     menuRefused: 'el menú no aceptó el cambio',
     // Commands
     consejoDescription: 'Última sugerencia de modelo y effort, con su regla y su fuente. Con "auditar" revisa las fuentes',
@@ -254,6 +255,7 @@ export const MESSAGES = {
     rowModel: 'model',
     noModelRow: 'no model row in /config',
     noEffortRow: 'no effort row in /config',
+    effortCommandFailed: '/effort could not run',
     menuRefused: 'the menu did not take the change',
     consejoDescription: 'Last model and effort advice, with its rule and its source. With "audit" it checks the sources',
     consejoHint: '[audit]',

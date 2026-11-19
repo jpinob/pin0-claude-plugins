@@ -12,7 +12,7 @@ It only suggests. It never changes the model or the effort on its own: it does s
 
 On any prompt, the `Improve` button also asks a model for a better version of what you wrote and shows it in a pane, next to a model and effort card for that same draft. You pick what to use, and you press Enter yourself.
 
-Current version: **0.8.6** (in `.claude-plugin/plugin.json`).
+Current version: **0.8.7** (in `.claude-plugin/plugin.json`).
 
 ![The Improved prompt pane: Sonnet's proposal for "add dark mode to the settings page", with three SPECIFY tags in yellow, one OPTIONAL tag in green, a line of changes and the Use and Discard buttons](docs/pane-en.png)
 
@@ -47,7 +47,7 @@ The line has two buttons of its own: `Apply` and `Turn off`. Click them, or focu
 
 `Apply` writes the suggested model and effort into their `/config` rows, as if you changed them in the menu yourself. Your prompt stays in the box: all that is left is Enter. A short notice says what was applied.
 
-Two things to know. Changing the model from `/config` may save it as the default model for new sessions. And if the engine refuses the change, the notice says so and you will have to use `/model` or `/effort`.
+Two things to know. Changing the model from `/config` may save it as the default model for new sessions. When `/config` has no effort row, the mod runs `/effort <level>` as you would, and that saves the level as the model's default for later sessions; `Undo` puts back the level you had, or runs `/effort auto` when it was the model's own default. And if the engine refuses the change, the notice says so and you will have to use `/model` or `/effort`.
 
 `Turn off` switches the advisor off for the whole session, `/clear` included: no advice and no Haiku calls. On the first prompt the band then says "Advisor off" and offers `Turn on`, which brings the advice back for the draft in the box. The `Improve` button stays either way.
 
@@ -63,7 +63,7 @@ Press `Improve` in the band, or type `/mejora`. This is what happens:
 4. Every card and every row has `Use`, in your theme's green, and `Discard`. They only record your pick; nothing changes yet.
 5. Once every row has a pick, `Prepare` shows up below the cards. It applies what you picked: the proposal goes into the box, and the model and effort go into their `/config` rows. It never sends anything.
 6. After `Prepare`, the pane keeps one line with what was applied and what was discarded, for example `Applied: prompt in the box, model Fable. Discarded: effort.`: the notice goes in seconds, and VS Code shows the model nowhere. `Undo` puts back exactly what the box held, and the model and effort you had.
-7. Above the foot, the version of the copy that runs (`consejero-modelo v0.8.6`): an installed plugin runs from a copy, which can lag behind the folder you unzipped. At the foot, the signature "made with ♥ and Ai by Pin0", in the colours of your light or dark theme. In a narrow pane it is short: "♥ Ai Pin0".
+7. Above the foot, the version of the copy that runs (`consejero-modelo v0.8.7`): an installed plugin runs from a copy, which can lag behind the folder you unzipped. At the foot, the signature "made with ♥ and Ai by Pin0", in the colours of your light or dark theme. In a narrow pane it is short: "♥ Ai Pin0".
 
 After `Prepare` the band says nothing, not even `Improve`, until you send the prompt: you have already decided for that draft. `/mejora` still works if you need it. `Undo` brings the band back.
 
@@ -251,6 +251,8 @@ claude plugin test .
 - The signature "made with ♥ and Ai by Pin0" sits at the foot of the "Improved prompt" pane and at the end of `/consejo`. It does not fit in the band, which is a single line.
 
 ## Versions
+
+- **0.8.7**: with no effort row in `/config` (Javi's case), `Prepare` and `Apply` run `/effort <level>`, and `Undo` puts the effort back; the version above the signature comes from the code, since reading the manifest showed nothing on Windows.
 
 - **0.8.6**: the effort is read in Claude Code's own order, the level `/effort` saves under `modelSettings` and the model's default included; `/effort` saves there and never reached the mod in 0.8.5 (seen by Javi).
 

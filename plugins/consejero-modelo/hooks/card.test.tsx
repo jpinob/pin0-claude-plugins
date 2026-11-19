@@ -2,6 +2,8 @@
 // the band quiet until the next prompt, Deshacer, and the fixed colours in VS Code.
 import { expect, test } from 'claude-code/testing'
 
+import { VERSION } from './version'
+
 const TASK = 'Migra la base de datos de MySQL a Postgres sin perder datos'
 const YES = 'vale, sigue con eso por favor'
 const PROPOSAL = 'Sigue con la migración de MySQL a Postgres. [ESPECIFICAR: ¿qué tablas primero?]'
@@ -29,6 +31,7 @@ type Engine = {
   haiku: Array<{ system: string; prompt: string }>
   haikuReply: string
   toasts: string[]
+  effortRuns: string[]
 }
 
 // The hooks here stand for the engine: the session on Sonnet at high, the /config rows, the transcript and the models.
@@ -40,6 +43,7 @@ function engine(on: any): Engine {
     haiku: [],
     haikuReply: '{"modelo":"fable-migracion","effort":"ninguna"}',
     toasts: [],
+    effortRuns: [],
   }
   on('session.model', () => ({ value: `claude-${m.rows.model}-5-5` }))
   on('config.list', () => ({
@@ -61,9 +65,11 @@ function engine(on: any): Engine {
   on('classic.SessionStart', () => ({}))
   on('classic.Stop', () => ({}))
   // The built-in /effort, beneath the mod's hook: it prints nothing here.
-  on('command.run', { command: 'effort' }, () => ({ text: '' }))
+  on('command.run', { command: 'effort' }, (_: unknown, e: any) => {
+    m.effortRuns.push(e.args)
+    return { text: '' }
+  })
   on('session.start', (_: unknown, e: any) => ({ cwd: e.cwd }))
-  on('fs.read', (_: unknown, e: any) => ({ value: String(e.path ?? e).endsWith('/.claude-plugin/plugin.json') ? '{"version":"9.9.9"}' : '' }))
   on('command.register', (_: unknown, e: any) => ({ value: { command: e.name } }))
   on('prompt.edit', (_: unknown, e: any) => {
     m.box = e.text.slice(0, e.start) + e.inputText + e.text.slice(e.end)
@@ -268,12 +274,32 @@ test('the pane shows the version of the copy that runs, and /consejo says where 
   await mejora($, TASK)
   const ui = await $.ui.mount(pane('terminal'))
   const shown = await texts(ui)
-  expect(shown).toContain('consejero-modelo v9.9.9')
+  expect(shown).toContain(`consejero-modelo v${VERSION}`)
   // The signature stays the pane's last line, after the version.
-  expect(shown.indexOf('consejero-modelo v9.9.9')).toBeLessThan(shown.indexOf('made with'))
+  expect(shown.indexOf(`consejero-modelo v${VERSION}`)).toBeLessThan(shown.indexOf('made with'))
   await ui.unmount()
 
   await $.command.run({ command: 'effort', args: 'high' } as any)
   const after = await $.command.run({ command: 'consejo', args: '' } as any)
   expect(after.text).toContain('Effort que conoce el mod: high (de /effort).')
+})
+
+test('with no effort row in /config, Preparar runs /effort, and Deshacer clears it back to the model default', async ($, on) => {
+  const m = engine(on)
+  // As in Javi's Claude Code: /config lists no effort row, so writing it there fails.
+  delete (m.rows as Record<string, string>).effortLevel
+  await $.classic.SessionStart({ source: 'startup', cwd: '/' })
+  await mejora($, TASK)
+  const ui = await $.ui.mount(pane('terminal'))
+  expect(await texts(ui)).toContain('Effort: medium → high')
+  await ui.press({ key: 'discard' })
+  await ui.press({ key: 'use-effort' })
+  await ui.press({ key: 'prepare' })
+  expect(m.effortRuns).toEqual(['high'])
+  expect(m.sets).toEqual([])
+  expect(await texts(ui)).toContain('Aplicado: effort high.')
+  // The effort was the model's own default: Deshacer clears the saved level with /effort auto.
+  await ui.press({ key: 'undo' })
+  expect(m.effortRuns).toEqual(['high', 'auto'])
+  await ui.unmount()
 })

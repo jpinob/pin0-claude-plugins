@@ -3,16 +3,17 @@ import { atom, read, update } from 'claude-code'
 import type { EngineInterface, Register, Timer } from 'claude-code'
 
 import rulesData from '../rules'
-import { findRow, effortValue, modelValue } from './apply'
+import { findRow, modelValue } from './apply'
 import { auditRules, auditReport, auditorRequest } from './auditor'
 import type { Pages } from './auditor'
-import { classify, effortOf, familyOf, report, displayName, assessWith, bandText } from './classifier'
+import { classify, familyOf, report, displayName, assessWith, bandText } from './classifier'
 import type { Rules } from './classifier'
 import { haikuTail, haikuSentence, readHaikuReply, haikuRequest } from './haiku'
 import { isImprovable, modelName } from './improver'
 import { detectLang, FALLBACK, langFromSetting, t } from './i18n'
 import { drawPane, forgetProposal, openImprover, PANEL, runImprovement, paintTags, EMPTY, IMPROVER_SHAPE } from './panel'
-import { forgetTask, noteEffort, readEffort, readSettings, startCard, startOver, writeRow } from './card'
+import { forgetTask, noteEffort, readEffort, readSettings, setEffort, startCard, startOver, writeRow } from './card'
+import { VERSION } from './version'
 import type { Classification, Advice, HaikuState, Lang, Assessment } from '../types'
 
 const RULES: Rules = rulesData
@@ -56,20 +57,6 @@ async function startLanguage($: EngineInterface): Promise<Lang> {
     return value
   } catch {
     return read($, lang)
-  }
-}
-
-/**
- * Reads the loaded copy's version from its own plugin.json. Reason: an installed plugin runs from a copy, so the
- * folder the person unzipped can hold a newer version than the one that runs (Javi, 0.8.3).
- */
-async function readVersion($: EngineInterface) {
-  try {
-    const data: unknown = JSON.parse(await $.fs.read(`${$.plugin.root}/.claude-plugin/plugin.json`))
-    const value = typeof data === 'object' && data !== null ? (data as { version?: unknown }).version : undefined
-    if (typeof value === 'string') await update($, version, () => value)
-  } catch {
-    // No readable manifest: the footer shows no version.
   }
 }
 
@@ -190,9 +177,8 @@ async function applyAdvice($: EngineInterface, advice: Advice) {
     if (failure !== null) failures.push(`${m.rowModel}: ${failure}`)
   }
   // Reason: the rows are read again because a new model can bring its own saved effort.
-  const row = findRow(await $.config.list(), 'effort')
-  if (effortOf(row?.value) !== advice.effort) {
-    const failure = row ? await writeRow($, row.key, effortValue(row, advice.effort), language) : m.noEffortRow
+  if ((await readSettings($)).effort !== advice.effort) {
+    const { failure } = await setEffort($, advice.effort, language)
     if (failure !== null) failures.push(`effort: ${failure}`)
   }
   $.ui.toast(failures.length === 0 ? m.applied(displayName(advice.model), advice.effort) : m.applyFailed(failures.join('; ')))
@@ -285,7 +271,8 @@ export const register: Register = (on, options) => {
 
   on('session.start', async ($, e, next) => {
     detach(refreshTheme($))
-    detach(readVersion($))
+    // Reason: the person can tell which code runs; an installed plugin can lag behind the folder unzipped.
+    await update($, version, () => VERSION)
     const m = t(await startLanguage($))
     // Reason: an SDK host (the VS Code extension, seen by Javi on 0.7.4) starts its sessions with isInteractive
     // false, and a command registered only under the REPL never reached it. Registering is harmless elsewhere.

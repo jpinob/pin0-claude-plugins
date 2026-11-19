@@ -210,6 +210,38 @@ export async function chooseRow($: EngineInterface, kind: CardRow['kind'], choic
 export const cardPending = (c: SettingsCard): boolean =>
   c.step === 'looking' || (c.step === 'ready' && c.rows.some(r => r.choice === null))
 
+/** The key Deshacer reads as "run /effort with this value" instead of a /config row. */
+export const EFFORT_COMMAND = '/effort'
+
+/**
+ * Sets the session's effort: the /config row when the menu has one, else `/effort <level>` run as the person would
+ * type it. Reason: this build's /config has no effort row (seen by Javi on 0.8.6). Like typing it, /effort saves
+ * the level as that model's default for later sessions (https://code.claude.com/docs/en/model-config).
+ * Returns the failure, and what Deshacer needs to put the effort back.
+ */
+export async function setEffort(
+  $: EngineInterface,
+  level: Effort,
+  language: Lang,
+): Promise<{ failure: string | null; before: { key: string; value: string } | null }> {
+  const config = findRow(await $.config.list(), 'effort')
+  if (config !== undefined) {
+    const failure = await writeRow($, config.key, effortValue(config, level), language)
+    if (failure === null) noteEffort(level, 'config')
+    return { failure, before: failure === null ? { key: config.key, value: String(config.value ?? '') } : null }
+  }
+  const previous = await readEffort($, await $.session.model())
+  try {
+    await $.command.run({ command: 'effort', args: level })
+  } catch {
+    return { failure: t(language).effortCommandFailed, before: null }
+  }
+  noteEffort(level, 'command')
+  // Reason: Deshacer restores a level the person had chosen, or clears the saved one when it was the model's default.
+  const back = previous.effort === null || previous.source === 'default' ? 'auto' : previous.effort
+  return { failure: null, before: { key: EFFORT_COMMAND, value: back } }
+}
+
 /** What Preparar did to /config: the parts for the toast, the failures, and the rows as they were. */
 export type Applied = { parts: string[]; failures: string[]; rowsBefore: Array<{ key: string; value: string }> }
 
@@ -220,6 +252,14 @@ export async function applyCard($: EngineInterface, c: SettingsCard, language: L
   for (const kind of ['model', 'effort'] as const) {
     const row = c.rows.find(r => r.kind === kind && r.choice === 'use')
     if (row === undefined) continue
+    if (kind === 'effort') {
+      const done = await setEffort($, row.value as Effort, language)
+      if (done.failure !== null) out.failures.push(`effort: ${done.failure}`)
+      if (done.before === null) continue
+      out.rowsBefore.push(done.before)
+      out.parts.push(m.partEffort(row.value))
+      continue
+    }
     const config = findRow(await $.config.list(), kind)
     if (config === undefined) {
       out.failures.push(kind === 'model' ? m.noModelRow : m.noEffortRow)
@@ -232,8 +272,7 @@ export async function applyCard($: EngineInterface, c: SettingsCard, language: L
       continue
     }
     out.rowsBefore.push({ key: config.key, value: String(config.value ?? '') })
-    if (kind === 'effort') noteEffort(row.value, 'config')
-    out.parts.push(kind === 'model' ? m.partModel(displayName(row.value)) : m.partEffort(row.value))
+    out.parts.push(m.partModel(displayName(row.value)))
   }
 
   return out
@@ -244,7 +283,14 @@ export async function undoRows($: EngineInterface, rows: ReadonlyArray<{ key: st
   let isOk = true
   // Reason: written back in reverse, so the model's own saved effort cannot overwrite the effort restored after it.
   for (const r of [...rows].reverse()) {
-    if ((await writeRow($, r.key, r.value, language)) !== null) isOk = false
+    if (r.key === EFFORT_COMMAND) {
+      try {
+        await $.command.run({ command: 'effort', args: r.value })
+        noteEffort(r.value, 'command')
+      } catch {
+        isOk = false
+      }
+    } else if ((await writeRow($, r.key, r.value, language)) !== null) isOk = false
     else if (/effort/i.test(r.key)) noteEffort(r.value, 'config')
   }
   return isOk
