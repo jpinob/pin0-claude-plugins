@@ -20,6 +20,7 @@ import {
   prettyModel,
   usd,
 } from './format'
+import { drawSignature, signatureColors } from './signature'
 import { lastSegment, readWorkspace } from './workspace'
 
 const PANE = 'session-overview'
@@ -28,11 +29,6 @@ const COMMAND = 'overview'
 // Body columns the dock is asked for: room for a 26-cell bar inside the frames.
 const PANE_COLUMNS = 34
 const TICK_MS = 1_000
-// Signature reads "made with ❤️ and Ai by Pino"; the "Ai" letters get their own colors.
-const SIGNATURE_LEAD = 'made with ❤️ and '
-const SIGNATURE_TAIL = ' by Pino'
-const AI_A_COLOR = '#FFD700' // chick yellow
-const AI_I_COLOR = '#00BFFF' // neon blue
 // Reason: the theme's dim grey read too dark in the pane, so secondary text uses a lighter grey.
 const MUTED_COLOR = '#BDBDBD'
 // git is asked this often as a fallback; Bash and worktree tools also trigger a read.
@@ -48,6 +44,13 @@ const effort = atom({ plugin: 'session-overview', key: 'effort' } as const, null
 const collapsed = atom({ plugin: 'session-overview', key: 'collapsed' } as const, [])
 const COLLAPSED_STORE_KEY = 'collapsed'
 const autoCompactAt = atom({ plugin: 'session-overview', key: 'autoCompactAt' } as const, null)
+const theme = atom({ plugin: 'session-overview', key: 'theme' } as const, '')
+
+/** Reads the /config "theme" row into state, so the signature takes the theme's colour set. */
+async function refreshTheme($: EngineInterface) {
+  const row = (await $.config.list()).find(r => r.key === 'theme')
+  await update($, theme, () => (typeof row?.value === 'string' ? row.value : ''))
+}
 
 // `summary` estimates the breakdown locally, so this sends no request.
 async function readAutoCompact($: EngineInterface) {
@@ -129,10 +132,19 @@ export const register: Register = (on, options) => {
     void readConfiguredEffort($).catch(() => undefined)
     void loadCollapsed($).catch(() => undefined)
     void readAutoCompact($).catch(() => undefined)
+    void refreshTheme($).catch(() => undefined)
     $.clock.every(AUTO_COMPACT_POLL_MS, () => void readAutoCompact($).catch(() => undefined))
     $.clock.every(WORKSPACE_POLL_MS, () => void refreshWorkspace($))
 
     return next(e)
+  })
+
+  // A new theme changes the signature's colour set at once.
+  on('config.set', async ($, e, next) => {
+    const result = await next(e)
+    if (e.key === 'theme' && !('deny' in result)) await update($, theme, () => (typeof e.value === 'string' ? e.value : ''))
+
+    return result
   })
 
   on('session.measure', async ($, e, next) => {
@@ -171,8 +183,11 @@ export const register: Register = (on, options) => {
   })
 
   on('ui.render', { component: 'Pane', requestId: PANE }, async ($, e) => {
-    const { Box, Button, Text } = $.ui.resolve(e)
-    const [usage, model, now, place, level, folded, autoTokens] = await Promise.all([
+    const pieces = $.ui.resolve(e)
+    const { Box, Button, Text } = pieces
+    // Reason: the terminal's table also has an Svg key but draws nothing there, so the surface decides.
+    const Svg = e.surface !== 'terminal' && 'Svg' in pieces ? pieces.Svg : undefined
+    const [usage, model, now, place, level, folded, autoTokens, themeName] = await Promise.all([
       $.session.usage(),
       $.session.model(),
       $.clock.now(),
@@ -180,6 +195,7 @@ export const register: Register = (on, options) => {
       read($, effort),
       read($, collapsed),
       read($, autoCompactAt),
+      read($, theme),
     ])
     // Two border cells and two padding cells sit around each bar.
     const barWidth = Math.max(8, (e.props.bodyColumns ?? PANE_COLUMNS) - 4)
@@ -442,14 +458,7 @@ export const register: Register = (on, options) => {
     return (
       <Box flexDirection="column">
         {cards.map(card)}
-        <Box justifyContent="center">
-          <Text size="footnote">
-            <Text color={MUTED_COLOR}>{SIGNATURE_LEAD}</Text>
-            <Text color={AI_A_COLOR}>A</Text>
-            <Text color={AI_I_COLOR}>i</Text>
-            <Text color={MUTED_COLOR}>{SIGNATURE_TAIL}</Text>
-          </Text>
-        </Box>
+        {drawSignature({ Box, Text, Svg }, signatureColors(themeName), e.props.bodyColumns ?? PANE_COLUMNS)}
       </Box>
     )
   })

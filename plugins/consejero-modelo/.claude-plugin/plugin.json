@@ -1,6 +1,6 @@
 {
   "name": "consejero-modelo",
-  "version": "0.7.3",
+  "version": "0.7.4",
   "description": "Suggests a model and effort for the first prompt of a session, and with Improve proposes a better version of any prompt in a pane. Speaks Spanish or English, following your draft. It changes the model, the effort or the prompt only when you press a button, and never sends anything. / Sugiere modelo y effort para el primer prompt y, con Mejorar, propone una versión mejor de cualquier prompt. Habla español o inglés según tu borrador.",
   "author": {
     "name": "Javi"
@@ -20,7 +20,7 @@
     "mejorador": {
       "type": "string",
       "title": "Who rewrites the prompt / Quién reescribe el prompt",
-      "description": "The model that proposes the improved version when you press Improve or use /mejora. One paid call per press: sonnet writes better and costs more; haiku is cheaper. / El modelo que propone la versión mejorada al pulsar Mejorar o usar /mejora. Una llamada de pago por pulsación: sonnet escribe mejor y cuesta más; haiku es más barato.",
+      "description": "The model that proposes the improved version when you press Improve or use /mejora. One paid call per press: sonnet answers faster and follows the rules more closely; haiku costs about 14 times less. / El modelo que propone la versión mejorada al pulsar Mejorar o usar /mejora. Una llamada de pago por pulsación: sonnet responde antes y sigue mejor las reglas; haiku cuesta unas 14 veces menos.",
       "options": [
         "sonnet",
         "haiku"

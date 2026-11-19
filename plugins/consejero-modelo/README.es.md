@@ -14,7 +14,7 @@ Además, en cualquier prompt, el botón `Mejorar` pide a un modelo una versión 
 
 ![El panel Prompt mejorado: la propuesta de Sonnet para un script que borra logs antiguos, con una etiqueta NECESARIO en rojo, tres ESPECIFICAR en amarillo, la línea de cambios y los botones Usar y Descartar](docs/pane-es.png)
 
-Versión actual: **0.7.3** (en `.claude-plugin/plugin.json`).
+Versión actual: **0.7.4** (en `.claude-plugin/plugin.json`).
 
 ## Idioma
 
@@ -85,13 +85,26 @@ El mod nunca envía nada: revisas la caja y pulsas Enter tú. Al enviar un promp
 
 `/mejora texto` mejora el texto que pongas detrás. `/mejora` solo mejora el último borrador que escribiste en esta conversación, enviado o no.
 
-Las instrucciones que sigue el modelo están en `rules.ts`, cada una con su fuente. Las principales: mantener tu intención y tu idioma, no quitar nada de lo que pides, no añadir datos que no diste, y no meter pasos ni recordatorios de "verifica" o "piensa con cuidado". Estas dos últimas salen de la [documentación de modelos](https://code.claude.com/docs/en/model-config): "Describe the outcome, not the steps" y "Skip the verification reminders".
+Las instrucciones que sigue el modelo están en `rules.ts`, cada una con su fuente. Las principales: mantener tu intención y tu idioma, que una pregunta siga siendo pregunta, no quitar nada de lo que pides, no añadir datos que no diste, y no meter pasos ni recordatorios de "verifica" o "piensa con cuidado". Estas dos últimas salen de la [documentación de modelos](https://code.claude.com/docs/en/model-config): "Describe the outcome, not the steps" y "Skip the verification reminders".
 
 ### Quién reescribe y cuánto cuesta
 
 `/config`, fila "Quién reescribe el prompt": `sonnet` (por defecto) o `haiku`. Cada pulsación es una llamada de pago, con effort `low`. Si cancelas, la respuesta que llegue tarde no se enseña.
 
 Con los [precios de noviembre de 2026](https://platform.claude.com/docs/en/about-claude/pricing), estimado con 1.500 tokens de entrada y 500 de salida: Sonnet 5.5 unos 0,008 $, Haiku 5.5 unos 0,0004 $. El tope es de 4.000 caracteres de borrador y 3.000 tokens de respuesta: con Sonnet, como mucho unos 0,035 $. Son estimaciones; el gasto real lo ves en `/cost`. Con suscripción cuenta contra tu límite de uso.
+
+#### Sonnet o Haiku: lo medido
+
+El 19 nov 2026 pasé seis prompts reales míos por los dos modelos cinco veces: tres con las instrucciones de la 0.7.3 y dos con las de la 0.7.4 (`claude -p`, el mismo system prompt que el mod, effort `low`). Medias de 30 llamadas por modelo:
+
+| | Sonnet 5.5 | Haiku 5.5 |
+| --- | --- | --- |
+| Tiempo de API | 2,4 s | 3,1 s |
+| Coste por pulsación | 0,007 $ | 0,0005 $ |
+| Tokens de salida | 200 | 520 |
+| Por encima del tope | 0 | 0 |
+
+Los dos mantuvieron la intención y no pasaron del tope. Haiku se equivoca más de nivel: marca como `[OPCIONAL]` lo que solo sabes tú, y una vez pasó un prompt en inglés a español. Por eso `sonnet` sigue por defecto. La lectura de calidad es mía, leyendo las propuestas; el tiempo y el coste salen de la API.
 
 El modelo solo ve tu borrador: ni tu CLAUDE.md ni tu repo. Por eso tiene prohibido añadir datos y deja etiquetas.
 
@@ -204,7 +217,7 @@ claude plugin test .
 - El motor no tiene una llamada para leer el effort de la sesión. Antes de la primera petición el mod lee la fila de effort de `/config`. Si usas la variable `CLAUDE_CODE_EFFORT_LEVEL`, no la ve. Cuando no consigue leer el effort, compara solo el modelo.
 - No mira el estado de `flujo-plan`, que elige modelo por paso. Con un paso activo, la línea compara contra el modelo de tu sesión, no contra el que responderá.
 - La parte de Haiku está probada con respuestas simuladas. Qué contesta el Haiku de verdad, y cuánto acierta, se ve usándolo.
-- El mejorador está probado con respuestas simuladas. Si Sonnet escribe mejores prompts que Haiku está sin medir: compáralos con tus prompts reales.
+- Los tests del mejorador usan respuestas simuladas. La comparación de Sonnet y Haiku de arriba son seis prompts y cinco pasadas: una muestra pequeña.
 - Cerrar el panel tú (con Escape o su aspa) olvida la propuesta. Eso no lo cubre ningún test: el kit de pruebas no puede simular ese cierre.
 - El panel necesita sitio. Si la ventana es estrecha, el mod no hace la llamada y un aviso te pide ensanchar.
 - La detección del idioma es por palabras. Un borrador corto sin palabras frecuentes ni tildes ("Postgres MySQL") no cambia el idioma.
@@ -212,6 +225,7 @@ claude plugin test .
 
 ## Versiones
 
+- **0.7.4**: instrucciones del mejorador ajustadas tras comparar Sonnet y Haiku con prompts reales: una pregunta sigue siendo pregunta, la propuesta y sus etiquetas van en el idioma del prompt, "este archivo" sin nada pegado pide que lo pegues, una preferencia nunca es `[OPCIONAL]` y una pregunta clara no lleva `[NECESARIO]`.
 - **0.7.3**: `Desactivar` ya aguanta de verdad un `/clear` (en una sesión real se volvía a activar).
 - **0.7.2**: `Desactivar` / `Activar` sustituyen a `Ocultar`, con "Consejero desactivado" en la banda; con Haiku activo, la suposición de las palabras nunca se enseña ni se aplica.
 - **0.7.1**: sin tope de llamadas a Haiku, así que la banda ya no se queda muda tras unos cuantos borradores; `Usar` en verde.

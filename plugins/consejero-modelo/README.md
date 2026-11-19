@@ -14,7 +14,7 @@ On any prompt, the `Improve` button also asks a model for a better version of wh
 
 ![The Improved prompt pane: Sonnet's proposal for "add dark mode to the settings page", with three SPECIFY tags in yellow, one OPTIONAL tag in green, a line of changes and the Use and Discard buttons](docs/pane-en.png)
 
-Current version: **0.7.3** (in `.claude-plugin/plugin.json`).
+Current version: **0.7.4** (in `.claude-plugin/plugin.json`).
 
 ## Language
 
@@ -85,13 +85,26 @@ The mod never sends anything: you review the box and press Enter. When you send 
 
 `/mejora text` improves the text you put after it. A bare `/mejora` improves the last draft you wrote in this conversation, sent or not.
 
-The model's instructions are in `rules.ts`, each with its source. The main ones: keep your intent and your language, drop nothing you asked for, add no facts you did not give, and add no steps or "verify" or "think carefully" reminders. The last two come from the [model docs](https://code.claude.com/docs/en/model-config): "Describe the outcome, not the steps" and "Skip the verification reminders".
+The model's instructions are in `rules.ts`, each with its source. The main ones: keep your intent and your language, keep a question a question, drop nothing you asked for, add no facts you did not give, and add no steps or "verify" or "think carefully" reminders. The last two come from the [model docs](https://code.claude.com/docs/en/model-config): "Describe the outcome, not the steps" and "Skip the verification reminders".
 
 ### Who rewrites and what it costs
 
 `/config`, row "Who rewrites the prompt / Quién reescribe el prompt": `sonnet` (default) or `haiku`. Each press is one paid call, at effort `low`. If you cancel, an answer that arrives late is not shown.
 
 With the [November 2026 prices](https://platform.claude.com/docs/en/about-claude/pricing), estimated at 1,500 input tokens and 500 output tokens: Sonnet 5.5 about $0.008, Haiku 5.5 about $0.0004. The caps are 4,000 draft characters and 3,000 reply tokens: with Sonnet, about $0.035 at most. These are estimates; `/cost` shows the real spend. On a subscription it counts against your usage limit.
+
+#### Sonnet or Haiku: what was measured
+
+On 19 Nov 2026, six of my real prompts went through both models five times: three with the 0.7.3 instructions and two with those of 0.7.4 (`claude -p`, the same system prompt as the mod, effort `low`). Averages over 30 calls per model:
+
+| | Sonnet 5.5 | Haiku 5.5 |
+| --- | --- | --- |
+| API time | 2.4 s | 3.1 s |
+| Cost per press | $0.007 | $0.0005 |
+| Output tokens | 200 | 520 |
+| Over the length cap | 0 | 0 |
+
+Both kept the intent and stayed under the cap. Haiku mislabels more often: it marks as `[OPTIONAL]` what only you know, and it once turned an English prompt into Spanish. That is why `sonnet` stays the default. The quality reading is mine, from reading the proposals; time and cost come from the API.
 
 The model sees only your draft: neither your CLAUDE.md nor your repo. That is why it may not add facts and leaves tags instead.
 
@@ -204,7 +217,7 @@ claude plugin test .
 - The engine has no call to read the session's effort. Before the first request the mod reads the effort row of `/config`. If you use the `CLAUDE_CODE_EFFORT_LEVEL` variable, it does not see it. When it cannot read the effort, it compares the model alone.
 - It does not look at `flujo-plan`'s state, which picks a model per step. With a step active, the line compares against your session's model, not the one that will answer.
 - The Haiku part is tested with simulated answers. What the real Haiku answers, and how often it is right, shows in use.
-- The improver is tested with simulated answers. Whether Sonnet writes better prompts than Haiku is unmeasured: compare them on your real prompts.
+- The improver's tests use simulated answers. The Sonnet and Haiku comparison above is six prompts and five runs: a small sample.
 - Closing the pane yourself (with Escape or its close mark) forgets the proposal. No test covers it: the test kit cannot simulate that close.
 - The pane needs room. If the window is narrow, the mod makes no call and a notice asks you to widen it.
 - Language detection works by words. A short draft with no frequent words or accents ("Postgres MySQL") does not change the language.
@@ -212,6 +225,7 @@ claude plugin test .
 
 ## Versions
 
+- **0.7.4**: improver instructions from a real Sonnet and Haiku comparison: a question stays a question, the proposal and its tags follow the prompt's language, "this file" with nothing pasted asks for it, a preference is never `[OPTIONAL]`, and a clear question gets no `[REQUIRED]`.
 - **0.7.3**: `Turn off` now really survives `/clear` (it came back on in a real session).
 - **0.7.2**: `Turn off` / `Turn on` replace `Hide`, with "Advisor off" in the band; with Haiku on, the words' guess is never shown or applied.
 - **0.7.1**: no cap on Haiku calls, so the band no longer goes silent after a few drafts; `Use` in green.

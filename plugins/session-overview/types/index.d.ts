@@ -27,6 +27,8 @@ declare module 'claude-code' {
       collapsed: string[]
       /** Tokens at which auto-compaction runs; null when it is off or not read yet. */
       autoCompactAt: number | null
+      /** The value of the /config "theme" row, so the signature takes the colours of the theme. */
+      theme: string
     }
   }
 }

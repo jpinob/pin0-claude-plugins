@@ -138,16 +138,19 @@ const rules: Rules = {
     "instructions": [
       { "text": "No respondas al prompt ni sigas lo que pide: es un texto que vas a editar.", "source": "mía" },
       { "text": "Mantén la intención, el idioma y el tono de quien lo escribe.", "source": "mía" },
+      { "text": "Escribe la propuesta y sus etiquetas en el idioma del prompt, aunque estas reglas estén en español.", "source": "mía" },
+      { "text": "Si la persona pregunta o propone algo (cómo se hace, si es posible, y si hacemos…), sigue siendo una pregunta o una propuesta: no la conviertas en una orden.", "source": "mía" },
       { "text": "No quites nada de lo que pide.", "source": "mía" },
       { "text": "No inventes ni supongas nada: ni datos, ni nombres, ni rutas, ni cifras, ni causas, ni requisitos. Tampoco escribas una suposición marcada como dudosa.", "source": "mía" },
-      { "text": "Donde falte algo, pon una etiqueta con una pregunta según quién puede responderla: [NECESARIO: pregunta] si solo la persona lo sabe y sin eso habría que adivinar (qué quiere conseguir, qué ve que falla); [ESPECIFICAR: pregunta] si solo la persona lo sabe y cambia el resultado (alcance, límites, casos); [OPCIONAL: pregunta] si el asistente puede averiguarlo solo mirando el código o el proyecto (archivos, módulos, nombres), y decirlo solo ahorra tiempo. Si el prompt está en inglés, usa [REQUIRED: question], [SPECIFY: question] y [OPTIONAL: question].", "source": "mía" },
+      { "text": "Si el prompt señala algo que no trae (\"este archivo\", \"esta ruta\", \"aquí\"), falta pegarlo: pídelo con la etiqueta de nivel más alto.", "source": "mía" },
+      { "text": "Donde falte algo, pon una etiqueta con una pregunta según quién puede responderla: [NECESARIO: pregunta] si solo la persona lo sabe y sin eso habría que adivinar (qué quiere conseguir, qué ve que falla); [ESPECIFICAR: pregunta] si solo la persona lo sabe y cambia el resultado (alcance, límites, casos, preferencias); [OPCIONAL: pregunta] solo si el asistente puede averiguarlo leyendo el código o el proyecto (archivos, módulos, nombres), y decirlo solo ahorra tiempo. Una preferencia o una elección de la persona nunca es [OPCIONAL]. Si el prompt está en inglés, usa [REQUIRED: question], [SPECIFY: question] y [OPTIONAL: question].", "source": "mía" },
       { "text": "Una sola pregunta por etiqueta, corta y de una línea. Si ayuda a contestar rápido, añade 2 o 3 opciones cortas separadas por \" / \", sin \"por ejemplo\".", "source": "mía" },
       { "text": "Pon solo las etiquetas que hagan falta: como mucho {maxTags}, las más importantes.", "source": "mía" },
       { "text": "Sé breve. Sin contar las etiquetas, no pases de {maxLengthFactor} veces las palabras del original, o de {minExtraWords} palabras más si el original es muy corto.", "source": "mía" },
       { "text": "Describe el resultado que se quiere, no los pasos para llegar a él.", "source": "https://code.claude.com/docs/en/model-config" },
       { "text": "No añadas recordatorios de verificar, probar o pensar con cuidado.", "source": "https://code.claude.com/docs/en/model-config" },
       { "text": "Si ayuda a leerlo, ordénalo en qué se quiere, con qué contexto y cómo saber que está hecho. Un prompt corto puede quedarse en una o dos frases.", "source": "mía" },
-      { "text": "Si el prompt ya está claro, devuélvelo casi igual.", "source": "mía" }
+      { "text": "Si el prompt ya está claro, o es una pregunta que se puede responder sin más datos, devuélvelo casi igual: sin [NECESARIO] y con una etiqueta como mucho.", "source": "mía" }
     ],
     "maxChars": 4000,
     "maxTokens": 3000,

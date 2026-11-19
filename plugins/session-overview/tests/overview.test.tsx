@@ -83,7 +83,8 @@ test('the pane shows every figure, on terminal and desktop', async ($, on) => {
     expect(await text(/^7.5% free/)).toBe('7.5% free')
     expect(await text(/2d 5h/)).toBe('resets in 2d 5h')
     expect(await text(/CRITICAL/)).toBe('🔴 CRITICAL')
-    expect(await text(/made with/)).toBe('made with ❤️ and Ai by Pino')
+    // The signature is checked piece by piece in signature.test.tsx.
+    expect(await text(/^made with $/)).toBe('made with ')
     await ui.unmount()
   }
 })
