@@ -188,6 +188,8 @@ export const MESSAGES = {
     reread: (tokens: number | null) =>
       `Aviso: cambiar de modelo a mitad de sesión rompe la caché. El modelo nuevo relee ${tokens === null ? 'toda la conversación' : `${thousands(tokens, 'es')} tokens`} sin caché y sale más caro.`,
     cardHold: (effort: string, why: string) => `Effort: te quedas en ${effort} · no lo bajo: ${why}`,
+    effortStay: (effort: string) => `Effort: te quedas en ${effort}.`,
+    cardNoEffort: 'Effort: no puedo leer el tuyo en /config, así que no lo comparo.',
     holds: {
       continues: 'el prompt sigue la tarea anterior',
       errors: 'el último turno tuvo errores',
@@ -335,6 +337,8 @@ export const MESSAGES = {
     reread: (tokens: number | null) =>
       `Warning: switching models mid-session breaks the cache. The new model re-reads ${tokens === null ? 'the whole conversation' : `${thousands(tokens, 'en')} tokens`} uncached, which costs more.`,
     cardHold: (effort: string, why: string) => `Effort: staying at ${effort} · not lowering it: ${why}`,
+    effortStay: (effort: string) => `Effort: staying at ${effort}.`,
+    cardNoEffort: 'Effort: I cannot read yours in /config, so I do not compare it.',
     holds: {
       continues: 'the prompt follows the task before',
       errors: 'the last turn had errors',

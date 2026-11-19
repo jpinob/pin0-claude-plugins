@@ -59,8 +59,11 @@ export function turnEvidence(messages: readonly Message[], maxChars: number): Tu
 /** Why a lower effort was not proposed. */
 export type Hold = 'continues' | 'errors' | 'no-judge'
 
-/** What the card proposes: its rows, each still unchosen, and a line for when there is no row. */
-export type CardProposal = { rows: CardRow[]; note: Bilingual }
+/**
+ * What the card proposes: its rows, each still unchosen; a line for when there is no row; and, when there is
+ * no effort row, a line that says why. Reason: a card silent about the effort reads as broken (Javi, 0.8.0).
+ */
+export type CardProposal = { rows: CardRow[]; note: Bilingual; effortNote: Bilingual }
 
 /** What the card is decided from, beside the classification and the settings. */
 export type CardContext = {
@@ -86,7 +89,7 @@ export function cardRows(c: Classification, settings: Settings, rules: Rules, ct
   const current = familyOf(settings.model, rules)
   // Reason: in words mode a later "yes" matches no rule, and the default rule would propose a change from nothing.
   if (!ctx.isFirst && ctx.byWords && c.modelRule === 'por-defecto' && c.effortRule === 'por-defecto') {
-    return { rows: [], note: inBoth(lang => m(lang).cardNoJudge) }
+    return { rows: [], note: inBoth(lang => m(lang).cardNoJudge), effortNote: inBoth(() => '') }
   }
   const advice = advise(c, settings, rules)
   const reason = advice.reason
@@ -126,10 +129,15 @@ export function cardRows(c: Classification, settings: Settings, rules: Rules, ct
     }
   }
 
-  if (rows.length > 0) return { rows, note: inBoth(() => '') }
-  if (hold !== null) return { rows, note: inBoth(lang => m(lang).cardHold(settings.effort!, m(lang).holds[hold!])) }
-  const effort = settings.effort === null ? '' : ` · ${settings.effort}`
+  const effortNote: Bilingual = rows.some(r => r.kind === 'effort')
+    ? inBoth(() => '')
+    : settings.effort === null
+      ? inBoth(lang => m(lang).cardNoEffort)
+      : hold !== null
+        ? inBoth(lang => m(lang).cardHold(settings.effort!, m(lang).holds[hold!]))
+        : inBoth(lang => m(lang).effortStay(settings.effort!))
+  if (rows.length > 0) return { rows, note: inBoth(() => ''), effortNote }
   const model = current === null ? settings.model : displayName(current)
 
-  return { rows, note: inBoth(lang => `${m(lang).fineWith(model)}${effort} · ${reason[lang]}`) }
+  return { rows, note: inBoth(lang => `${m(lang).fineWith(model)} · ${reason[lang]}`), effortNote }
 }

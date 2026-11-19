@@ -16,9 +16,9 @@ import { paneColors } from './palette'
 
 const RULES: Rules = rulesData
 
-export const HIDDEN: SettingsCard = { step: 'hidden', rows: [], note: { es: '', en: '' }, isFirst: false }
+export const HIDDEN: SettingsCard = { step: 'hidden', rows: [], note: { es: '', en: '' }, effortNote: { es: '', en: '' }, isFirst: false }
 // Reason: the shape tag declines a card an older version stored in another form.
-export const CARD_SHAPE = 'card-1'
+export const CARD_SHAPE = 'card-2'
 const card = atom({ plugin: 'consejero-modelo', key: 'card' } as const, HIDDEN, { shape: CARD_SHAPE })
 const lang = atom({ plugin: 'consejero-modelo', key: 'lang' } as const, FALLBACK as Lang)
 const theme = atom({ plugin: 'consejero-modelo', key: 'theme' } as const, '')
@@ -141,7 +141,7 @@ export async function startCard($: EngineInterface, text: string, start: CardSta
   // Reason: the first prompt always starts a task; later, only a draft Haiku read as one replaces it.
   if (start.isFirst || standalone === true) task = text.trim().slice(0, 300)
   const proposal = cardRows(classification, settings, RULES, { isFirst: start.isFirst, standalone, evidence, tokens, byWords })
-  await update($, card, () => ({ step: 'ready' as const, rows: proposal.rows, note: proposal.note, isFirst: start.isFirst }))
+  await update($, card, () => ({ step: 'ready' as const, rows: proposal.rows, note: proposal.note, effortNote: proposal.effortNote, isFirst: start.isFirst }))
 }
 
 /** A pick on one row; pressing the same pick again keeps it. */
@@ -234,6 +234,7 @@ export async function drawCard($: EngineInterface, e: RenderInput<'Pane'>, isLoc
     <Box flexDirection="column" borderStyle="round" paddingX={1}>
       <Text color="text" weight="bold">{m.cardTitle}</Text>
       {body}
+      {c.step === 'ready' && c.effortNote[language] !== '' && <Text color="text">{c.effortNote[language]}</Text>}
     </Box>
   )
 }

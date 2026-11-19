@@ -44,11 +44,11 @@ test('a "yes, go on" never lowers the effort, whatever Haiku classifies', () => 
   const easy = haiku('{"modelo":"ninguna","effort":"low-rapido"}')
   const continues = cardRows(easy, OPUS_HIGH, RULES, later({ standalone: false }))
   expect(continues.rows).toEqual([])
-  expect(continues.note.es).toBe('Effort: te quedas en high · no lo bajo: el prompt sigue la tarea anterior')
+  expect(continues.effortNote.es).toBe('Effort: te quedas en high · no lo bajo: el prompt sigue la tarea anterior')
   // A new task, but the last turn failed: still no lower.
   const failed = cardRows(easy, OPUS_HIGH, RULES, later({ evidence: { ...NO_EVIDENCE, errors: 2 } }))
   expect(failed.rows).toEqual([])
-  expect(failed.note.en).toBe('Effort: staying at high · not lowering it: the last turn had errors')
+  expect(failed.effortNote.en).toBe('Effort: staying at high · not lowering it: the last turn had errors')
   // No reading of whether it is a new task: no lower either.
   expect(cardRows(easy, OPUS_HIGH, RULES, later({ standalone: null })).rows).toEqual([])
 })
@@ -89,7 +89,20 @@ test('settings that already match say so instead of offering a row', () => {
   const debug = haiku('{"modelo":"opus-depurar","effort":"high-verificar"}')
   const out = cardRows(debug, OPUS_HIGH, RULES, later())
   expect(out.rows).toEqual([])
-  expect(out.note.es).toBe('vas bien con Opus · high · depuración')
+  expect(out.note.es).toBe('vas bien con Opus · depuración')
+  expect(out.effortNote.es).toBe('Effort: te quedas en high.')
+})
+
+test('a card never stays silent about the effort: a row, a reason to stay, or that it cannot be read', () => {
+  const docs = haiku('{"modelo":"sonnet-documentos","effort":"ninguna"}')
+  // The effort the /config row does not give (seen by Javi in VS Code): the model row alone, and a line that says so.
+  const unread = cardRows(docs, { model: 'claude-opus-5-5', effort: null }, RULES, later({ isFirst: true }))
+  expect(unread.rows.map(r => r.kind)).toEqual(['model'])
+  expect(unread.effortNote.es).toBe('Effort: no puedo leer el tuyo en /config, así que no lo comparo.')
+  // With an effort row there is nothing more to say about the effort.
+  const first = cardRows(docs, OPUS_HIGH, RULES, later({ isFirst: true }))
+  expect(first.rows.map(r => r.kind)).toEqual(['model', 'effort'])
+  expect(first.effortNote.es).toBe('')
 })
 
 test('the later request fences the task memory and the last turn as data, and asks whether it stands alone', () => {

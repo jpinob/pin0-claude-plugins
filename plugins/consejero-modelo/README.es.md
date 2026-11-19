@@ -12,7 +12,7 @@ Solo sugiere. No cambia el modelo ni el effort por su cuenta: lo hace si pulsas 
 
 Además, en cualquier prompt, el botón `Mejorar` pide a un modelo una versión mejor de lo que escribiste y te la enseña en un panel, junto a una tarjeta de modelo y effort para ese mismo borrador. Tú eliges qué usas, y el Enter lo pulsas tú.
 
-Versión actual: **0.8.1** (en `.claude-plugin/plugin.json`).
+Versión actual: **0.8.2** (en `.claude-plugin/plugin.json`).
 
 ![El panel Prompt mejorado: la propuesta de Sonnet para un script que borra logs antiguos, con una etiqueta NECESARIO en rojo, tres ESPECIFICAR en amarillo, la línea de cambios y los botones Usar y Descartar](docs/pane-es.png)
 
@@ -118,7 +118,7 @@ La tarjeta sigue las mismas reglas y el mismo Haiku que la banda, con una difere
 
 - **Primer prompt.** Modelo y effort, como los aconsejaría la banda. Si el Haiku de la banda ya leyó ese mismo borrador, la tarjeta usa su respuesta y no hace una segunda llamada.
 - **Después del primer prompt.** La fila de modelo lleva un aviso en rojo: cambiar de modelo a mitad de sesión rompe la caché, y el modelo nuevo relee toda la conversación sin caché. El aviso da los tokens que releería, como los cuenta la línea de estado.
-- **Subir el effort:** lo que pidan las reglas, en cualquier prompt.
+- **Subir el effort:** lo que pidan las reglas, en cualquier prompt. Sin fila de effort, la tarjeta dice por qué: se queda igual, no lo baja, o el mod no puede leerlo en `/config`.
 - **Bajar el effort después del primer prompt:** un nivel como mucho, y solo si Haiku lee el borrador como tarea nueva y el último turno acabó sin errores de herramientas. Si no, la tarjeta dice que se queda donde está y por qué. El clasificador ve un borrador, y "vale, sigue" en mitad de una migración parece fácil: bajar por error es el fallo caro.
 
 ### La memoria de tarea
@@ -251,6 +251,8 @@ claude plugin test .
 - La firma "made with ♥ and Ai by Pin0" va al pie del panel "Prompt mejorado" y al final de `/consejo`. En la banda no cabe: es una sola línea.
 
 ## Versiones
+
+- **0.8.2**: la tarjeta nunca calla sobre el effort: sin fila de effort dice que se queda, por qué no lo baja, o que no puede leerlo en `/config`.
 
 - **0.8.1**: tras `Preparar` el panel deja una línea con lo aplicado y lo descartado (el aviso se iba demasiado rápido, y VS Code no enseña el modelo); comprobado por Javi en VS Code: `Preparar` sí cambia el modelo allí.
 

@@ -121,8 +121,10 @@ export type SettingsCard = {
   /** hidden: no card (advisor off, no pane); looking: Haiku is reading; ready: rows or a note; failed: no reading. */
   step: 'hidden' | 'looking' | 'ready' | 'failed'
   rows: CardRow[]
-  /** What the card says when it has no row: you're fine, or why it does not lower the effort. */
+  /** What the card says when it has no row: you're fine with the model. */
   note: Bilingual
+  /** When there is no effort row: the effort stays, why it is not lowered, or that it cannot be read. */
+  effortNote: Bilingual
   /** True on the first prompt of a conversation, where the model can change without re-reading anything. */
   isFirst: boolean
 }

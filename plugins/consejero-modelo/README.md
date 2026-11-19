@@ -12,7 +12,7 @@ It only suggests. It never changes the model or the effort on its own: it does s
 
 On any prompt, the `Improve` button also asks a model for a better version of what you wrote and shows it in a pane, next to a model and effort card for that same draft. You pick what to use, and you press Enter yourself.
 
-Current version: **0.8.1** (in `.claude-plugin/plugin.json`).
+Current version: **0.8.2** (in `.claude-plugin/plugin.json`).
 
 ![The Improved prompt pane: Sonnet's proposal for "add dark mode to the settings page", with three SPECIFY tags in yellow, one OPTIONAL tag in green, a line of changes and the Use and Discard buttons](docs/pane-en.png)
 
@@ -118,7 +118,7 @@ The card follows the same rules and the same Haiku as the band, with one differe
 
 - **First prompt.** Model and effort, as the band would advise them. If the band's Haiku already read that very draft, the card uses its answer and makes no second call.
 - **After the first prompt.** The model row comes with a warning in red: switching models mid-session breaks the cache, and the new model re-reads the whole conversation uncached. The warning gives the tokens it would re-read, as the status line counts them.
-- **Effort up:** as far as the rules ask, on any prompt.
+- **Effort up:** as far as the rules ask, on any prompt. Without an effort row, the card says why: the effort stays, it is not lowered, or the mod cannot read it from `/config`.
 - **Effort down after the first prompt:** one level at most, and only when Haiku reads the draft as a new task and the last turn ended without tool errors. Otherwise the card says it stays where it is and why. The classifier sees one draft, and "ok, go on" in the middle of a migration reads as easy: a wrong lower is the costly mistake.
 
 ### The task memory
@@ -251,6 +251,8 @@ claude plugin test .
 - The signature "made with ♥ and Ai by Pin0" sits at the foot of the "Improved prompt" pane and at the end of `/consejo`. It does not fit in the band, which is a single line.
 
 ## Versions
+
+- **0.8.2**: the card never stays silent about the effort: without an effort row it says the effort stays, why it is not lowered, or that it cannot read it from `/config`.
 
 - **0.8.1**: after `Prepare` the pane keeps a line with what was applied and discarded (the notice went too fast, and VS Code shows the model nowhere); checked by Javi in VS Code: `Prepare` does change the model there.
 
