@@ -12,6 +12,8 @@ Solo sugiere. No cambia el modelo ni el effort por su cuenta: lo hace si pulsas 
 
 Además, en cualquier prompt, el botón `Mejorar` pide a un modelo una versión mejor de lo que escribiste y te la enseña en un panel. Tú decides si la usas, y el Enter lo pulsas tú.
 
+![El panel Prompt mejorado: la propuesta de Sonnet para un script que borra logs antiguos, con una etiqueta NECESARIO en rojo, tres ESPECIFICAR en amarillo, la línea de cambios y los botones Usar y Descartar](docs/pane-es.png)
+
 Versión actual: **0.7.3** (en `.claude-plugin/plugin.json`).
 
 ## Idioma

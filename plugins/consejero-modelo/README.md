@@ -12,6 +12,8 @@ It only suggests. It never changes the model or the effort on its own: it does s
 
 On any prompt, the `Improve` button also asks a model for a better version of what you wrote and shows it in a pane. You decide whether to use it, and you press Enter yourself.
 
+![The Improved prompt pane: Sonnet's proposal for "add dark mode to the settings page", with three SPECIFY tags in yellow, one OPTIONAL tag in green, a line of changes and the Use and Discard buttons](docs/pane-en.png)
+
 Current version: **0.7.3** (in `.claude-plugin/plugin.json`).
 
 ## Language
