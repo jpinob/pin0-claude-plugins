@@ -1,7 +1,7 @@
 {
   "name": "consejero-modelo",
-  "version": "0.7.5",
-  "description": "Suggests a model and effort for the first prompt of a session, and with Improve proposes a better version of any prompt in a pane. Speaks Spanish or English, following your draft. It changes the model, the effort or the prompt only when you press a button, and never sends anything. / Sugiere modelo y effort para el primer prompt y, con Mejorar, propone una versión mejor de cualquier prompt. Habla español o inglés según tu borrador.",
+  "version": "0.8.7",
+  "description": "Suggests a model and effort for the first prompt of a session, and with Improve proposes a better version of any prompt in a pane, with a model and effort card for the same draft. Speaks Spanish or English, following your draft. It changes the model, the effort or the prompt only when you press a button, and never sends anything. / Sugiere modelo y effort para el primer prompt y, con Mejorar, propone una versión mejor de cualquier prompt, con una tarjeta de modelo y effort. Habla español o inglés según tu borrador.",
   "author": {
     "name": "Javi"
   },
@@ -10,7 +10,7 @@
     "clasificador": {
       "type": "string",
       "title": "Who classifies the prompt / Quién clasifica el prompt",
-      "description": "haiku: Haiku picks among the rules when you stop typing (one small paid call, three at most per prompt). palabras: only the word lists in rules.ts, no model call. / haiku: Haiku elige entre las reglas cuando dejas de escribir (una llamada de pago pequeña, tres como mucho por prompt). palabras: solo las listas de palabras de rules.ts, sin llamar a ningún modelo.",
+      "description": "haiku: Haiku picks among the rules when you stop typing, and reads the pane's card (one small paid call each). palabras: only the word lists in rules.ts, no model call. / haiku: Haiku elige entre las reglas cuando dejas de escribir, y lee la tarjeta del panel (una llamada de pago pequeña cada vez). palabras: solo las listas de palabras de rules.ts, sin llamar a ningún modelo.",
       "options": [
         "haiku",
         "palabras"

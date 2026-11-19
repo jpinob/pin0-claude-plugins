@@ -57,6 +57,10 @@ const both = (lang: Lang, a: string, b: string): string => `${a} ${lang === 'es'
 
 const plural = (n: number, one: string, many: string): string => `${n} ${n === 1 ? one : many}`
 
+/** A whole number with the language's thousands separator: 85.000 in Spanish, 85,000 in English. */
+export const thousands = (n: number, lang: Lang): string =>
+  String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, lang === 'es' ? '.' : ',')
+
 /** Every text the mod shows, by language. Functions take what changes; the rest is fixed. */
 export const MESSAGES = {
   es: {
@@ -83,6 +87,7 @@ export const MESSAGES = {
     rowModel: 'modelo',
     noModelRow: 'no hay fila de modelo en /config',
     noEffortRow: 'no hay fila de effort en /config',
+    effortCommandFailed: '/effort no se pudo ejecutar',
     menuRefused: 'el menú no aceptó el cambio',
     // Commands
     consejoDescription: 'Última sugerencia de modelo y effort, con su regla y su fuente. Con "auditar" revisa las fuentes',
@@ -153,7 +158,7 @@ export const MESSAGES = {
     undoFailed: 'No pude devolver tu texto a la caja.',
     idle: 'Escribe un prompt y pulsa Mejorar en la banda, o usa /mejora.',
     thinking: (who: string) => `${who} está reescribiendo tu prompt…`,
-    boxUntouched: 'Tu caja no cambia hasta que pulses Usar.',
+    boxUntouched: 'Tu caja no cambia hasta que pulses Preparar.',
     failed: (who: string, reason: string) => `${who} no pudo mejorarlo: ${reason}.`,
     boxSame: 'Tu prompt sigue igual en la caja.',
     proposalBy: (who: string) => `Propuesta de ${who}`,
@@ -172,6 +177,57 @@ export const MESSAGES = {
     droppedSome: (added: string, list: string, rest: number) =>
       `Cambios: ${added}. Quitó ${list}${rest > 0 ? ` y ${rest} más` : ''}.`,
     inBox: 'Ya está en tu caja: rellena las etiquetas y pulsa Enter.',
+    // Settings card and Preparar
+    promptTitle: 'Prompt',
+    cardTitle: 'Modelo y effort',
+    cardLooking: 'Haiku está mirando este borrador…',
+    cardFailed: 'Haiku no respondió: sin sugerencia de modelo ni effort.',
+    cardNoJudge: 'Sin Haiku no sé de qué tarea es este prompt: sin sugerencia.',
+    modelRowText: (from: string, to: string, reason: string) => `Modelo: ${from} → ${to} · ${reason}`,
+    rowEffort: (from: string, to: string, reason: string, isLower: boolean) =>
+      `Effort: ${from} → ${to} · ${reason}${isLower ? ' · tarea nueva y el último turno acabó sin errores' : ''}`,
+    reread: (tokens: number | null) =>
+      `Aviso: cambiar de modelo a mitad de sesión rompe la caché. El modelo nuevo relee ${tokens === null ? 'toda la conversación' : `${thousands(tokens, 'es')} tokens`} sin caché y sale más caro.`,
+    cardHold: (effort: string, why: string) => `Effort: te quedas en ${effort} · no lo bajo: ${why}`,
+    effortStay: (effort: string) => `Effort: te quedas en ${effort}.`,
+    effortKnown: (effort: string, source: string) => `Effort que conoce el mod: ${effort} (${source}).`,
+    effortUnknown: 'Effort que conoce el mod: ninguno. Ni la variable, ni /effort, ni tus ajustes, ni /config, ni el final de un turno dan uno.',
+    effortSources: {
+      turn: 'del final del último turno',
+      command: 'de /effort',
+      config: 'de /config',
+      env: 'de CLAUDE_CODE_EFFORT_LEVEL',
+      saved: 'guardado para este modelo en tus ajustes',
+      setting: 'de effortLevel en tus ajustes',
+      row: 'de la fila de /config',
+      default: 'el que trae el modelo por defecto',
+    },
+    cardNoEffort: 'Effort: no puedo leer el tuyo en /config, así que no lo comparo.',
+    holds: {
+      continues: 'el prompt sigue la tarea anterior',
+      errors: 'el último turno tuvo errores',
+      'no-judge': 'sin Haiku no sé si es una tarea nueva',
+    },
+    picked: { use: 'Lo usarás.', discard: 'Lo descartas.' },
+    prepare: 'Preparar',
+    chooseAll: 'Elige Usar o Descartar en cada fila y pulsa Preparar.',
+    partPrompt: 'prompt en la caja',
+    partModel: (model: string) => `modelo ${model}`,
+    partEffort: (effort: string) => `effort ${effort}`,
+    prepared: (parts: string[]) =>
+      parts.length === 0
+        ? 'Nada que preparar: tu caja, tu modelo y tu effort siguen igual.'
+        : `Preparado: ${parts.join(', ')}. Revisa la caja y pulsa Enter.`,
+    prepareFailed: (list: string) => `No se pudo cambiar ${list}. Cámbialo con /model o /effort.`,
+    namePrompt: 'prompt',
+    nameModel: 'modelo',
+    appliedLine: (applied: string[], discarded: string[]) =>
+      [applied.length > 0 ? `Aplicado: ${applied.join(', ')}.` : '', discarded.length > 0 ? `Descartado: ${discarded.join(', ')}.` : '']
+        .filter(x => x !== '')
+        .join(' '),
+    notApplied: (list: string) => `No se pudo cambiar: ${list}.`,
+    doneNoPrompt: 'Preparado. Tu prompt sigue como lo escribiste: pulsa Enter cuando quieras.',
+    rowsUndoFailed: 'No pude devolver el modelo o el effort: usa /model o /effort.',
     use: 'Usar',
     discard: 'Descartar',
     undo: 'Deshacer',
@@ -199,6 +255,7 @@ export const MESSAGES = {
     rowModel: 'model',
     noModelRow: 'no model row in /config',
     noEffortRow: 'no effort row in /config',
+    effortCommandFailed: '/effort could not run',
     menuRefused: 'the menu did not take the change',
     consejoDescription: 'Last model and effort advice, with its rule and its source. With "audit" it checks the sources',
     consejoHint: '[audit]',
@@ -264,7 +321,7 @@ export const MESSAGES = {
     undoFailed: 'Could not put your text back in the box.',
     idle: 'Write a prompt and press Improve in the band, or use /mejora.',
     thinking: (who: string) => `${who} is rewriting your prompt…`,
-    boxUntouched: 'Your box does not change until you press Use.',
+    boxUntouched: 'Your box does not change until you press Prepare.',
     failed: (who: string, reason: string) => `${who} could not improve it: ${reason}.`,
     boxSame: 'Your prompt is unchanged in the box.',
     proposalBy: (who: string) => `${who}'s proposal`,
@@ -283,6 +340,56 @@ export const MESSAGES = {
     droppedSome: (added: string, list: string, rest: number) =>
       `Changes: ${added}. Dropped ${list}${rest > 0 ? ` and ${rest} more` : ''}.`,
     inBox: 'It is in your box: fill in the tags and press Enter.',
+    promptTitle: 'Prompt',
+    cardTitle: 'Model and effort',
+    cardLooking: 'Haiku is reading this draft…',
+    cardFailed: 'Haiku did not answer: no model or effort advice.',
+    cardNoJudge: 'Without Haiku I cannot tell which task this prompt belongs to: no advice.',
+    modelRowText: (from: string, to: string, reason: string) => `Model: ${from} → ${to} · ${reason}`,
+    rowEffort: (from: string, to: string, reason: string, isLower: boolean) =>
+      `Effort: ${from} → ${to} · ${reason}${isLower ? ' · a new task, and the last turn ended without errors' : ''}`,
+    reread: (tokens: number | null) =>
+      `Warning: switching models mid-session breaks the cache. The new model re-reads ${tokens === null ? 'the whole conversation' : `${thousands(tokens, 'en')} tokens`} uncached, which costs more.`,
+    cardHold: (effort: string, why: string) => `Effort: staying at ${effort} · not lowering it: ${why}`,
+    effortStay: (effort: string) => `Effort: staying at ${effort}.`,
+    effortKnown: (effort: string, source: string) => `Effort the mod knows: ${effort} (${source}).`,
+    effortUnknown: 'Effort the mod knows: none. Neither the variable, /effort, your settings, /config nor a turn end gives one.',
+    effortSources: {
+      turn: "from the last turn's end",
+      command: 'from /effort',
+      config: 'from /config',
+      env: 'from CLAUDE_CODE_EFFORT_LEVEL',
+      saved: 'saved for this model in your settings',
+      setting: 'from effortLevel in your settings',
+      row: 'from the /config row',
+      default: "the model's own default",
+    },
+    cardNoEffort: 'Effort: I cannot read yours in /config, so I do not compare it.',
+    holds: {
+      continues: 'the prompt follows the task before',
+      errors: 'the last turn had errors',
+      'no-judge': 'without Haiku I cannot tell whether it is a new task',
+    },
+    picked: { use: 'You will use it.', discard: 'You discard it.' },
+    prepare: 'Prepare',
+    chooseAll: 'Pick Use or Discard on each row and press Prepare.',
+    partPrompt: 'prompt in the box',
+    partModel: (model: string) => `model ${model}`,
+    partEffort: (effort: string) => `effort ${effort}`,
+    prepared: (parts: string[]) =>
+      parts.length === 0
+        ? 'Nothing to prepare: your box, model and effort stay as they were.'
+        : `Prepared: ${parts.join(', ')}. Review the box and press Enter.`,
+    prepareFailed: (list: string) => `Could not change ${list}. Change it with /model or /effort.`,
+    namePrompt: 'prompt',
+    nameModel: 'model',
+    appliedLine: (applied: string[], discarded: string[]) =>
+      [applied.length > 0 ? `Applied: ${applied.join(', ')}.` : '', discarded.length > 0 ? `Discarded: ${discarded.join(', ')}.` : '']
+        .filter(x => x !== '')
+        .join(' '),
+    notApplied: (list: string) => `Could not change: ${list}.`,
+    doneNoPrompt: 'Prepared. Your prompt stays as you wrote it: press Enter when you want.',
+    rowsUndoFailed: 'Could not put the model or effort back: use /model or /effort.',
     use: 'Use',
     discard: 'Discard',
     undo: 'Undo',

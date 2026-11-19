@@ -10,11 +10,11 @@ Consejo: Fable · medium · arquitectura   [Aplicar] [Mejorar] [Desactivar]
 
 Solo sugiere. No cambia el modelo ni el effort por su cuenta: lo hace si pulsas `Aplicar`. El prompt sale siempre tal como lo escribiste.
 
-Además, en cualquier prompt, el botón `Mejorar` pide a un modelo una versión mejor de lo que escribiste y te la enseña en un panel. Tú decides si la usas, y el Enter lo pulsas tú.
+Además, en cualquier prompt, el botón `Mejorar` pide a un modelo una versión mejor de lo que escribiste y te la enseña en un panel, junto a una tarjeta de modelo y effort para ese mismo borrador. Tú eliges qué usas, y el Enter lo pulsas tú.
+
+Versión actual: **0.8.7** (en `.claude-plugin/plugin.json`).
 
 ![El panel Prompt mejorado: la propuesta de Sonnet para un script que borra logs antiguos, con una etiqueta NECESARIO en rojo, tres ESPECIFICAR en amarillo, la línea de cambios y los botones Usar y Descartar](docs/pane-es.png)
-
-Versión actual: **0.7.5** (en `.claude-plugin/plugin.json`).
 
 ## Idioma
 
@@ -35,9 +35,9 @@ Lo que no cambia: el nombre de los comandos (`/consejo`, `/mejora`), las filas d
 - Con menos de 12 caracteres, o si el texto empieza por `/`, no dice nada.
 - Al enviar el prompt la línea desaparece y no vuelve en esa conversación.
 
-La línea sale en la banda de encima del prompt: terminal, app de escritorio y móvil. En VS Code esa banda no existe, así que allí no hay consejo ni botón `Mejorar`; `/mejora` también se registra en sus sesiones, pero no está probado si su panel y `Usar` funcionan. En `claude -p` el mod no hace nada.
+La línea sale en la banda de encima del prompt: terminal, app de escritorio y móvil. En VS Code esa banda no existe, así que allí no hay línea de consejo ni botón `Mejorar`; `/mejora` funciona, y su panel trae la tarjeta de modelo y effort. En `claude -p` el mod no hace nada.
 
-`/consejo` enseña la última sugerencia con la regla que la disparó, su fuente y los choques que arrastra.
+`/consejo` enseña la última sugerencia con la regla que la disparó, su fuente y los choques que arrastra, y el effort que conoce el mod y de dónde lo sacó.
 
 El botón `Mejorar` no sigue estas reglas: sale en cualquier prompt con 12 caracteres o más que no empiece por `/`. Fuera del primer prompt la banda solo tiene ese botón.
 
@@ -47,7 +47,7 @@ La línea trae dos botones propios: `Aplicar` y `Desactivar`. Haz clic, o enfoca
 
 `Aplicar` escribe el modelo y el effort sugeridos en sus filas de `/config`, igual que si los cambiaras tú en el menú. Tu prompt se queda en la caja: después solo falta Enter. Un aviso corto dice qué se aplicó.
 
-Dos cosas a saber. Cambiar el modelo desde `/config` puede guardarlo como modelo por defecto de las sesiones nuevas. Y si el motor niega el cambio, el aviso lo dice y tendrás que usar `/model` o `/effort`.
+Tres cosas a saber. Cambiar el modelo desde `/config` puede guardarlo como modelo por defecto de las sesiones nuevas. Cuando `/config` no tiene fila de effort, el mod ejecuta `/effort <nivel>` como lo harías tú, y eso guarda el nivel como el de ese modelo para las sesiones siguientes; `Deshacer` devuelve el nivel que tenías, o ejecuta `/effort auto` si era el que trae el modelo por defecto. Y si el motor niega el cambio, el aviso lo dice y tendrás que usar `/model` o `/effort`.
 
 `Desactivar` apaga el consejero toda la sesión, también tras `/clear`: ni consejo ni llamadas a Haiku. En el primer prompt la banda dice entonces "Consejero desactivado" y ofrece `Activar`, que devuelve el consejo para el borrador de la caja. El botón `Mejorar` se queda en los dos casos.
 
@@ -57,11 +57,13 @@ Pulsa `Mejorar` en la banda, o escribe `/mejora`. Pasa esto:
 
 1. Un modelo recibe tu borrador y las instrucciones de `improver` en `rules.ts`. Por defecto es Sonnet.
 2. Se abre el panel "Prompt mejorado". **Tu caja no cambia todavía.**
-3. Arriba, la propuesta, con cuántas etiquetas de cada nivel deja.
-4. Debajo, una línea con los cambios: cuántas palabras añadió y cuáles de las tuyas quitó. La calcula el mod comparando los dos textos, sin preguntar al modelo, así que no puede esconder una palabra quitada. Una mayúscula o un punto no cuentan como cambio.
-5. Si la propuesta se alarga más de lo permitido, una línea en amarillo lo avisa.
-6. Después, los botones: `Usar`, en el verde de tu tema, pone la propuesta en la caja y `Descartar` la tira. Una vez usada, `Deshacer` devuelve a la caja exactamente lo que tenía antes.
-7. Al pie, la firma "made with ♥ and Ai by Pin0", con los colores de tu tema claro u oscuro. Si el panel es estrecho, sale corta: "♥ Ai Pin0".
+3. El panel lleva dos tarjetas, cada una con su marco:
+   - **Prompt.** La propuesta, con cuántas etiquetas de cada nivel deja. Debajo, una línea con los cambios: cuántas palabras añadió y cuáles de las tuyas quitó. La calcula el mod comparando los dos textos, sin preguntar al modelo, así que no puede esconder una palabra quitada. Una mayúscula o un punto no cuentan como cambio. Si la propuesta se alarga más de lo permitido, una línea en amarillo lo avisa.
+   - **Modelo y effort.** La sugerencia de Haiku para ese mismo borrador: una fila para el modelo y otra para el effort, solo las que cambiarían. Se explica en [Modelo y effort en el panel](#modelo-y-effort-en-el-panel).
+4. Cada tarjeta y cada fila tiene `Usar`, en el verde de tu tema, y `Descartar`. Solo apuntan lo que eliges; todavía no cambia nada.
+5. Cuando todas las filas tienen elección, sale `Preparar` debajo de las tarjetas. Aplica lo que elegiste: la propuesta va a la caja, y el modelo y el effort a sus filas de `/config`. Nunca envía nada.
+6. Después de `Preparar`, el panel deja una línea fija con lo aplicado y lo descartado, por ejemplo `Aplicado: prompt en la caja, modelo Fable. Descartado: effort.`: el aviso se va en segundos, y VS Code no enseña el modelo en ningún sitio. `Deshacer` devuelve a la caja exactamente lo que tenía, y el modelo y el effort que tenías.
+7. Encima del pie, la versión de la copia que se ejecuta (`consejero-modelo v0.8.7`): un plugin instalado corre desde una copia, que puede ir por detrás de la carpeta que descomprimiste. Al pie, la firma "made with ♥ and Ai by Pin0", con los colores de tu tema claro u oscuro. Si el panel es estrecho, sale corta: "♥ Ai Pin0".
 
 ### Etiquetas por importancia
 
@@ -75,11 +77,13 @@ El modelo no puede inventar ni suponer nada, ni siquiera marcándolo como dudoso
 
 La etiqueta va en el idioma del prompt. El color nunca va solo: la palabra dice el nivel, y un lector de voz la lee. Los colores son los del tema (`error`, `warning`, `success`), así que siguen tu modo claro u oscuro. Como mucho 4 etiquetas, las más importantes.
 
-Al pulsar `Usar`, las etiquetas se pintan también en tu caja, y siguen pintadas mientras escribes.
+Cuando `Preparar` pone la propuesta en la caja, las etiquetas se pintan también allí, y siguen pintadas mientras escribes.
 
 ### Breve
 
 Sin contar las etiquetas, la propuesta no puede pasar del doble de palabras de tu borrador, o de 25 palabras más si el borrador es muy corto. Los números están en `rules.ts` (`maxLengthFactor`, `minExtraWords`, `maxTags`) y la instrucción que recibe el modelo los toma de ahí. Si el modelo se pasa, el panel lo dice.
+
+Después de `Preparar` la banda no dice nada, ni siquiera `Mejorar`, hasta que envías el prompt: ya has decidido para ese borrador. `/mejora` sigue funcionando si lo necesitas. `Deshacer` devuelve la banda.
 
 El mod nunca envía nada: revisas la caja y pulsas Enter tú. Al enviar un prompt, la propuesta se olvida y el panel se cierra.
 
@@ -108,6 +112,28 @@ Los dos mantuvieron la intención y no pasaron del tope. Haiku se equivoca más 
 
 El modelo solo ve tu borrador: ni tu CLAUDE.md ni tu repo. Por eso tiene prohibido añadir datos y deja etiquetas.
 
+## Modelo y effort en el panel
+
+La tarjeta sigue las mismas reglas y el mismo Haiku que la banda, con una diferencia: también funciona después del primer prompt.
+
+- **Primer prompt.** Modelo y effort, como los aconsejaría la banda. Si el Haiku de la banda ya leyó ese mismo borrador, la tarjeta usa su respuesta y no hace una segunda llamada.
+- **Después del primer prompt.** La fila de modelo lleva un aviso en rojo: cambiar de modelo a mitad de sesión rompe la caché, y el modelo nuevo relee toda la conversación sin caché. El aviso da los tokens que releería, como los cuenta la línea de estado.
+- **Subir el effort:** lo que pidan las reglas, en cualquier prompt. Sin fila de effort, la tarjeta dice por qué: se queda igual, no lo baja, o el mod no puede leerlo en `/config`.
+- **Bajar el effort después del primer prompt:** un nivel como mucho, y solo si Haiku lee el borrador como tarea nueva y el último turno acabó sin errores de herramientas. Si no, la tarjeta dice que se queda donde está y por qué. El clasificador ve un borrador, y "vale, sigue" en mitad de una migración parece fácil: bajar por error es el fallo caro.
+
+### La memoria de tarea
+
+En una conversación puede haber varias tareas: "migra la base de datos", luego "sí", "sí", "sí", y después "ahora redáctame el README". Un "sí" no dice nada de la tarea, así que después del primer prompt Haiku recibe algo de contexto:
+
+- La tarea en curso: el último borrador que Haiku leyó como tarea propia. El primer prompt siempre empieza una.
+- Los últimos cinco prompts que enviaste, con 300 caracteres como mucho cada uno.
+- El final de la última respuesta del asistente, con 1.000 caracteres como mucho (`effortLater.contextChars` en `rules.ts`).
+- Cómo fue el último turno, en números: herramientas, ediciones de archivos y errores. Nunca lo que devolvieron las herramientas.
+
+Haiku responde por la tarea tal como queda, y dice si el borrador empieza una nueva. Un "sí" hereda la clasificación de su tarea. `/clear` olvida la tarea. Con `palabras` no hay Haiku que lea el contexto: después del primer prompt la tarjeta no propone nada salvo que coincida una palabra de las reglas, y nunca baja el effort.
+
+Cada pulsación de `Mejorar` después del primer prompt es una llamada a Haiku con ese contexto: unos 2.000 tokens de entrada, unos 0,0002 $ con los precios de Haiku 5.5. Es una estimación; el gasto real lo ves en `/cost`.
+
 ## Quién clasifica
 
 Hay dos clasificadores y trabajan juntos:
@@ -120,7 +146,7 @@ Haiku es una llamada de pago, pequeña. Los frenos:
 - Solo en el primer prompt de la conversación, que es cuando el mod habla.
 - Nunca por tecla: hace falta la pausa. Si vuelves a escribir, la llamada en curso se corta y no cuenta.
 - Sin tope de llamadas, pero ninguna repetida para el mismo texto. Cada borrador nuevo en el que haces la pausa es una llamada.
-- Se envían los primeros 2.000 caracteres del borrador y la lista de reglas. Nada más.
+- Se envían los primeros 2.000 caracteres del borrador y la lista de reglas. La tarjeta del panel, después del primer prompt, añade el contexto de [La memoria de tarea](#la-memoria-de-tarea).
 
 Con los precios de Haiku 5.5 (0,10 $ por millón de tokens de entrada y 0,50 $ de salida), cada llamada sale por unos 0,00015 $: diez pausas sobre diez borradores distintos, unos 0,0015 $. Es una estimación con unos 1.200 tokens de entrada; el gasto real lo ves en `/cost`. Con suscripción cuenta contra tu límite de uso.
 
@@ -132,7 +158,7 @@ Para quedarte solo con las palabras, sin llamar a ningún modelo: `/config`, fil
 
 ## Por qué solo en el primer prompt
 
-Cada modelo tiene su propia caché de prompt. Si cambias de modelo a mitad de sesión, la siguiente petición relee toda la conversación sin aciertos de caché. Con 100.000 tokens de contexto y la caché de una hora, pasar a Opus 5.5 cuesta unos 0,80 $ frente a 0,02 $ de una lectura normal. En el primer prompt todavía no hay conversación que releer.
+Cada modelo tiene su propia caché de prompt. Si cambias de modelo a mitad de sesión, la siguiente petición relee toda la conversación sin aciertos de caché. Con 100.000 tokens de contexto y la caché de una hora, pasar a Opus 5.5 cuesta unos 0,80 $ frente a 0,02 $ de una lectura normal. En el primer prompt todavía no hay conversación que releer. La tarjeta del panel sí propone modelo más adelante, con ese coste en un aviso rojo: mira [Modelo y effort en el panel](#modelo-y-effort-en-el-panel).
 
 El effort es otra historia: con suscripción o API key, cambiarlo conserva la caché en Fable 5.1 o posterior, Opus 5.5, Sonnet 5.5 y Haiku 5.5.
 
@@ -210,13 +236,14 @@ claude plugin validate .
 claude plugin test .
 ```
 
-`hooks/classifier.test.ts` prueba las reglas con veinticuatro prompts de ejemplo: tres por modelo en español y tres en inglés. `hooks/band.test.tsx` simula la escritura tecla a tecla, el envío, `/clear` y el cambio de modelo. `hooks/haiku.test.tsx` simula a Haiku y el reloj: la pausa, que no repite llamada para el mismo texto y las respuestas malas. `hooks/auditor.test.tsx` audita dos páginas de mentira a las que les quita una cita o les añade una familia. `hooks/improver.test.ts` prueba la petición del mejorador, la lectura de su respuesta, las etiquetas en los dos idiomas, el tope de largo y la comparación de palabras. `hooks/panel.test.tsx` pulsa `Mejorar`, `Usar`, `Deshacer` y `Cancelar`, prueba `/mejora`, los fallos y el color de las etiquetas en la caja. `hooks/signature.test.tsx` mide el contraste de los colores de la firma sobre fondos claros y oscuros, y comprueba que sale al pie del panel, corta si no cabe y con el corazón dibujado fuera de la terminal. `hooks/i18n.test.tsx` prueba la detección del idioma y que la banda, el panel y `/consejo` cambian de idioma con el borrador. Ningún test llama a un modelo real.
+`hooks/classifier.test.ts` prueba las reglas con veinticuatro prompts de ejemplo: tres por modelo en español y tres en inglés. `hooks/band.test.tsx` simula la escritura tecla a tecla, el envío, `/clear` y el cambio de modelo. `hooks/haiku.test.tsx` simula a Haiku y el reloj: la pausa, que no repite llamada para el mismo texto y las respuestas malas. `hooks/auditor.test.tsx` audita dos páginas de mentira a las que les quita una cita o les añade una familia. `hooks/improver.test.ts` prueba la petición del mejorador, la lectura de su respuesta, las etiquetas en los dos idiomas, el tope de largo y la comparación de palabras. `hooks/panel.test.tsx` pulsa `Mejorar`, `Usar`, `Preparar`, `Deshacer` y `Cancelar`, prueba `/mejora`, los fallos y el color de las etiquetas en la caja. `hooks/signature.test.tsx` mide el contraste de los colores de la firma sobre fondos claros y oscuros, y comprueba que sale al pie del panel, corta si no cabe y con el corazón dibujado fuera de la terminal. `hooks/i18n.test.tsx` prueba la detección del idioma y que la banda, el panel y `/consejo` cambian de idioma con el borrador. `hooks/effort.test.ts` prueba las filas de la tarjeta: que un "sí" nunca baja el effort, que una tarea nueva baja un solo nivel, los tokens de la fila de modelo y la petición con la memoria de tarea. `hooks/card.test.tsx` prueba la tarjeta con un motor de mentira: la memoria de tarea después del primer prompt, `Preparar` escribiendo en `/config`, la banda callada, `Deshacer`, `/clear` y los colores fijos en VS Code. `hooks/palette.test.ts` mide esos colores. Ningún test llama a un modelo real.
 
 ## Límites conocidos
 
-- El motor no tiene una llamada para leer el effort de la sesión. Antes de la primera petición el mod lee la fila de effort de `/config`. Si usas la variable `CLAUDE_CODE_EFFORT_LEVEL`, no la ve. Cuando no consigue leer el effort, compara solo el modelo.
+- El motor no tiene una llamada para leer el effort de la sesión, y `/effort` no se ve en la fila de `/config`. El mod sigue el mismo orden que Claude Code ([documentación de modelos](https://code.claude.com/docs/en/model-config), leída el 19 nov 2026): la variable `CLAUDE_CODE_EFFORT_LEVEL`; lo que ha visto en esta sesión (el nivel del final de cada turno, un `/effort <nivel>`, un cambio en `/config`); el nivel guardado para el modelo en `modelSettings`; un `effortLevel` general; la fila de `/config`; y el que trae el modelo por defecto, `medium` para los modelos de `defaultEffort.models` en `rules.ts`. No ve un `--effort` al arrancar hasta que acaba el primer turno. `/consejo` dice qué fuente usó.
 - No mira el estado de `flujo-plan`, que elige modelo por paso. Con un paso activo, la línea compara contra el modelo de tu sesión, no contra el que responderá.
-- La parte de Haiku está probada con respuestas simuladas. Qué contesta el Haiku de verdad, y cuánto acierta, se ve usándolo.
+- La parte de Haiku está probada con respuestas simuladas. Qué contesta el Haiku de verdad, y cuánto acierta, se ve usándolo. También la memoria de tarea: no está probado con prompts reales si Haiku distingue un "sí" de una tarea nueva.
+- En VS Code no se ven los colores del tema, así que allí el panel usa los colores fijos de la firma, medidos a 4,5:1 sobre los fondos de VS Code. Los colores de las etiquetas en la propia caja del prompt siguen siendo los del tema.
 - Los tests del mejorador usan respuestas simuladas. La comparación de Sonnet y Haiku de arriba son seis prompts y cinco pasadas: una muestra pequeña.
 - Cerrar el panel tú (con Escape o su aspa) olvida la propuesta. Eso no lo cubre ningún test: el kit de pruebas no puede simular ese cierre.
 - `Mejorar` y `/mejora` abren el panel a cualquier ancho de terminal. Si aun así el motor no puede colocarlo (ninguna superficie dibuja paneles), el mod no hace la llamada y un aviso dice por qué.
@@ -225,6 +252,21 @@ claude plugin test .
 
 ## Versiones
 
+- **0.8.7**: sin fila de effort en `/config` (tu caso), `Preparar` y `Aplicar` ejecutan `/effort <nivel>`, y `Deshacer` devuelve el effort; la versión encima de la firma sale del código, porque leer el manifiesto no mostraba nada en Windows.
+
+- **0.8.6**: el effort se lee en el mismo orden que Claude Code, incluido el nivel que `/effort` guarda en `modelSettings` y el que trae el modelo por defecto; `/effort` lo guarda ahí y en la 0.8.5 nunca llegaba al mod (visto por Javi).
+
+- **0.8.5**: `/effort <nivel>` se lee cuando se ejecuta el comando; el mod lo escuchaba donde el comando de Claude Code nunca aparece (visto por Javi en la 0.8.4).
+
+- **0.8.4**: el panel enseña la versión de la copia que se ejecuta; `/consejo` dice qué effort conoce el mod y de dónde lo sacó.
+
+- **0.8.3**: el effort se lee de `/effort <nivel>`, de `/config` y del final de cada turno, porque `/effort` no se ve en la fila de `/config` (visto por Javi en VS Code y en la terminal).
+
+- **0.8.2**: la tarjeta nunca calla sobre el effort: sin fila de effort dice que se queda, por qué no lo baja, o que no puede leerlo en `/config`.
+
+- **0.8.1**: tras `Preparar` el panel deja una línea con lo aplicado y lo descartado (el aviso se iba demasiado rápido, y VS Code no enseña el modelo); comprobado por Javi en VS Code: `Preparar` sí cambia el modelo allí.
+
+- **0.8.0**: el panel lleva dos tarjetas, prompt y modelo y effort, cada una con `Usar` y `Descartar`, y `Preparar` aplica lo elegido; después del primer prompt la tarjeta propone modelo con un aviso rojo por la caché, sube el effort sin freno y lo baja un nivel solo con tarea nueva y turno limpio; memoria de tarea para que una racha de "sí" no pierda su tarea; tras `Preparar` la banda calla hasta el siguiente envío; colores fijos en VS Code.
 - **0.7.5**: `/mejora` abre el panel también en una terminal estrecha (antes, por debajo de 144 columnas no se dibujaba); `/consejo` y `/mejora` se registran en sesiones que no son la terminal, como las de VS Code.
 - **0.7.4**: instrucciones del mejorador ajustadas tras comparar Sonnet y Haiku con prompts reales: una pregunta sigue siendo pregunta, la propuesta y sus etiquetas van en el idioma del prompt, "este archivo" sin nada pegado pide que lo pegues, una preferencia nunca es `[OPCIONAL]` y una pregunta clara no lleva `[NECESARIO]`.
 - **0.7.3**: `Desactivar` ya aguanta de verdad un `/clear` (en una sesión real se volvía a activar).

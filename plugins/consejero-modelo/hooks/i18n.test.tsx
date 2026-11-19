@@ -132,7 +132,14 @@ test('an English draft gets the pane in English; the proposal keeps its own tags
   expect(shown).toContain(' · 1 required')
   expect(shown).toContain('[REQUIRED: which services first?]')
   expect(shown).toContain('Changes: your text stays the same; it only adds questions.')
-  expect(await labels(pane)).toEqual(['Use', 'Discard'])
+  // The settings card speaks English too: one row for the model, one for the effort, each with its own pick.
+  expect(shown).toContain('Model and effort')
+  expect(shown).toContain('Model: Opus → Fable · architecture')
+  expect(shown).toContain('Effort: high → medium · architecture')
+  // The first prompt re-reads nothing: no cache warning.
+  expect(shown).not.toContain('breaks the cache')
+  expect(shown).toContain('Pick Use or Discard on each row and press Prepare.')
+  expect(await labels(pane)).toEqual(['Use', 'Discard', 'Use', 'Discard', 'Use', 'Discard', 'Close'])
   await pane.unmount()
 })
 

@@ -3,16 +3,18 @@ import { atom, read, update } from 'claude-code'
 import type { EngineInterface, Register, Timer } from 'claude-code'
 
 import rulesData from '../rules'
-import { findRow, effortValue, modelValue } from './apply'
+import { findRow, modelValue } from './apply'
 import { auditRules, auditReport, auditorRequest } from './auditor'
 import type { Pages } from './auditor'
-import { classify, effortOf, familyOf, report, displayName, assessWith, bandText } from './classifier'
+import { classify, familyOf, report, displayName, assessWith, bandText } from './classifier'
 import type { Rules } from './classifier'
 import { haikuTail, haikuSentence, readHaikuReply, haikuRequest } from './haiku'
 import { isImprovable, modelName } from './improver'
 import { detectLang, FALLBACK, langFromSetting, t } from './i18n'
-import { drawPane, forgetProposal, openImprover, PANEL, requestImprovement, runImprovement, paintTags, EMPTY, IMPROVER_SHAPE } from './panel'
-import type { Classification, Advice, HaikuState, Lang, Settings, Assessment } from '../types'
+import { drawPane, forgetProposal, openImprover, PANEL, runImprovement, paintTags, EMPTY, IMPROVER_SHAPE } from './panel'
+import { forgetTask, noteEffort, readEffort, readSettings, setEffort, startCard, startOver, writeRow } from './card'
+import { VERSION } from './version'
+import type { Classification, Advice, HaikuState, Lang, Assessment } from '../types'
 
 const RULES: Rules = rulesData
 
@@ -36,6 +38,10 @@ const improver = atom({ plugin: 'consejero-modelo', key: 'improver' } as const, 
 const lang = atom({ plugin: 'consejero-modelo', key: 'lang' } as const, FALLBACK as Lang)
 // The /config theme, read by panel.tsx for the signature's colour set.
 const theme = atom({ plugin: 'consejero-modelo', key: 'theme' } as const, '')
+// True once Preparar applied the picks, until the next prompt is sent: the band stays quiet meanwhile.
+const settled = atom({ plugin: 'consejero-modelo', key: 'settled' } as const, false)
+// The version the engine loaded, read from the plugin's own manifest, for the pane's footer.
+const version = atom({ plugin: 'consejero-modelo', key: 'version' } as const, '')
 
 /** Follows the language of a text when it shows one; a text that says too little keeps the current language. */
 async function followLanguage($: EngineInterface, text: string) {
@@ -66,13 +72,6 @@ async function refreshTheme($: EngineInterface) {
 
 async function markHaiku($: EngineInterface, step: HaikuState['step'], detail = '') {
   await update($, haiku, before => (before.step === step && before.detail === detail ? before : { step, detail }))
-}
-
-// Reason: the engine has no call for the session's effort; before the first request the /config row is the only reading.
-async function readSettings($: EngineInterface): Promise<Settings> {
-  const [model, rows] = await Promise.all([$.session.model(), $.config.list()])
-  const row = rows.find(f => /effort/i.test(f.key))
-  return { model, effort: effortOf(row?.value) }
 }
 
 const sameAssessment = (a: Assessment | null, b: Assessment | null): boolean => JSON.stringify(a) === JSON.stringify(b)
@@ -166,16 +165,6 @@ async function note($: EngineInterface, text: string) {
   }
 }
 
-// One /config row written as the person would in the menu; the engine's refusal comes back as text.
-async function writeRow($: EngineInterface, key: string, value: string, language: Lang): Promise<string | null> {
-  try {
-    const r = await $.config.set({ key, value })
-    return r.deny ?? null
-  } catch {
-    return t(language).menuRefused
-  }
-}
-
 // The Aplicar button: the person takes the suggestion, so its model and effort are set. The draft is not touched.
 async function applyAdvice($: EngineInterface, advice: Advice) {
   const failures: string[] = []
@@ -188,9 +177,8 @@ async function applyAdvice($: EngineInterface, advice: Advice) {
     if (failure !== null) failures.push(`${m.rowModel}: ${failure}`)
   }
   // Reason: the rows are read again because a new model can bring its own saved effort.
-  const row = findRow(await $.config.list(), 'effort')
-  if (effortOf(row?.value) !== advice.effort) {
-    const failure = row ? await writeRow($, row.key, effortValue(row, advice.effort), language) : m.noEffortRow
+  if ((await readSettings($)).effort !== advice.effort) {
+    const { failure } = await setEffort($, advice.effort, language)
     if (failure !== null) failures.push(`effort: ${failure}`)
   }
   $.ui.toast(failures.length === 0 ? m.applied(displayName(advice.model), advice.effort) : m.applyFailed(failures.join('; ')))
@@ -249,10 +237,23 @@ async function turnAdvisor($: EngineInterface, on: boolean) {
   await note($, draft)
 }
 
+// The pane for one draft: opened in the caller's own hook, then the rewrite and the settings card in the background.
+async function improve($: EngineInterface, text: string): Promise<boolean> {
+  const mine = await openImprover($, text, improverModel)
+  if (mine === null) return false
+  detach(runImprovement($, text, improverModel, mine))
+  const isFirstPrompt = await read($, isFirst)
+  const off = advisorOff || (await read($, isOff))
+  // Reason: on the first prompt the band's own Haiku answer for this very draft is reused, never asked twice.
+  const known = isFirstPrompt ? (seen.get(text) ?? null) : null
+  detach(startCard($, text, { isFirst: isFirstPrompt, useHaiku, isOff: off, known }))
+  return true
+}
+
 // The band's Mejorar: the box as it stands now, not the last edit the mod heard.
 async function improveBox($: EngineInterface) {
   const box = await $.prompt.read()
-  await requestImprovement($, box.text === '' ? draft : box.text, improverModel)
+  await improve($, box.text === '' ? draft : box.text)
 }
 
 // Background work never holds a key or a prompt; an engine call that fails there leaves the band as it was.
@@ -266,9 +267,12 @@ export const register: Register = (on, options) => {
   draft = ''
   lastWritten = ''
   forget()
+  startOver()
 
   on('session.start', async ($, e, next) => {
     detach(refreshTheme($))
+    // Reason: the person can tell which code runs; an installed plugin can lag behind the folder unzipped.
+    await update($, version, () => VERSION)
     const m = t(await startLanguage($))
     // Reason: an SDK host (the VS Code extension, seen by Javi on 0.7.4) starts its sessions with isInteractive
     // false, and a command registered only under the REPL never reached it. Registering is harmless elsewhere.
@@ -285,7 +289,11 @@ export const register: Register = (on, options) => {
     // Reason: a pane that will not close must not keep a new conversation from opening the consejo window.
     await forgetProposal($).catch(() => undefined)
     // Reason: a bare /mejora improves this conversation's last draft, never one from before a /clear.
-    if (isNew) lastWritten = ''
+    if (isNew) {
+      lastWritten = ''
+      forgetTask()
+    }
+    await update($, settled, () => false)
     await update($, isFirst, () => isNew)
     await update($, isOff, () => advisorOff)
     await update($, current, () => null)
@@ -318,7 +326,24 @@ export const register: Register = (on, options) => {
       detach(update($, current, () => null))
       // Reason: a proposal belongs to the draft it was made for; once a prompt is sent it is stale.
       detach(forgetProposal($))
+      detach(update($, settled, () => false))
     }
+
+    return next(e)
+  })
+
+  // `/effort high` sets the session's effort without touching the /config row. Reason: the built-in command
+  // never showed in prompt.submit (seen by Javi on 0.8.4), so the mod reads it as the command runs.
+  on('command.run', { command: 'effort' }, async ($, e, next) => {
+    const result = await next(e)
+    noteEffort(e.args.trim().split(/\s+/)[0] ?? '', 'command')
+
+    return result
+  })
+
+  // Each turn ends with the effort it ran at: the surest reading the mod gets.
+  on('classic.Stop', ($, e, next) => {
+    noteEffort(e.effort?.level, 'turn')
 
     return next(e)
   })
@@ -334,6 +359,7 @@ export const register: Register = (on, options) => {
     const result = await next(e)
     // A new theme changes the signature's colour set at once.
     if (e.key === 'theme' && !('deny' in result)) await update($, theme, () => (typeof e.value === 'string' ? e.value : ''))
+    if (/effort/i.test(e.key) && !('deny' in result)) noteEffort(e.value, 'config')
     detach(note($, draft))
 
     return result
@@ -350,10 +376,14 @@ export const register: Register = (on, options) => {
       return { text: m.auditStarted, isTextDisplayOnly: true }
     }
 
-    return {
-      text: report(await read($, last), RULES, language, haikuSentence(await read($, haiku), language)),
-      isTextDisplayOnly: true,
-    }
+    const lines = report(await read($, last), RULES, language, haikuSentence(await read($, haiku), language)).split('\n')
+    // Reason: the effort is the one reading that can fail silently, so /consejo says where it came from.
+    const reading = await readEffort($, await $.session.model())
+    const line = reading.effort === null ? m.effortUnknown : m.effortKnown(reading.effort, m.effortSources[reading.source!])
+    // The signature, when the report has one, stays its last line.
+    lines.splice(lines[lines.length - 1]?.startsWith('made with') ? -1 : lines.length, 0, line)
+
+    return { text: lines.join('\n'), isTextDisplayOnly: true }
   })
 
   // /mejora improves the text after it, or the last draft written when there is none.
@@ -364,8 +394,7 @@ export const register: Register = (on, options) => {
     if (!isImprovable(text, RULES)) return { text: t(language).nothingToImprove, isTextDisplayOnly: true }
     // Reason: the pane opens here, inside the command's own hook, so the engine places it at any width;
     // the model call takes seconds, and a command hook that waits on it freezes the command.
-    const mine = await openImprover($, text, improverModel)
-    if (mine !== null) detach(runImprovement($, text, improverModel, mine))
+    await improve($, text)
 
     return { text: t(language).preparing(modelName(improverModel, language)), isTextDisplayOnly: true }
   })
@@ -381,6 +410,8 @@ export const register: Register = (on, options) => {
 
   on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
     if (e.props.hasSurvey) return next(e)
+    // Preparar applied the picks: neither advice nor Mejorar until the next prompt is sent (Javi's choice, 0.8.0).
+    if (await read($, settled)) return next(e)
     const assessment = await read($, current)
     const language = await read($, lang)
     const m = t(language)
