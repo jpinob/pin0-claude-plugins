@@ -1,0 +1,19 @@
+{
+  "name": "session-overview",
+  "version": "0.2.3",
+  "author": {
+    "name": "Javi"
+  },
+  "description": "Docked pane with the current model, session cost and time, workspace folder, branch and worktree, context window fill, and the 5-hour and weekly usage limits",
+  "types": "./types/index.d.ts",
+  "userConfig": {
+    "compactAt": {
+      "type": "number",
+      "title": "Suggest /compact at (%)",
+      "description": "Context window fill, in percent, where the pane marks the bar and suggests running /compact.",
+      "default": 70,
+      "min": 1,
+      "max": 99
+    }
+  }
+}
