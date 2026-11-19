@@ -14,7 +14,7 @@ On any prompt, the `Improve` button also asks a model for a better version of wh
 
 ![The Improved prompt pane: Sonnet's proposal for "add dark mode to the settings page", with three SPECIFY tags in yellow, one OPTIONAL tag in green, a line of changes and the Use and Discard buttons](docs/pane-en.png)
 
-Current version: **0.7.4** (in `.claude-plugin/plugin.json`).
+Current version: **0.7.5** (in `.claude-plugin/plugin.json`).
 
 ## Language
 
@@ -35,7 +35,7 @@ What does not change: the command names (`/consejo`, `/mejora`), the `/config` r
 - With fewer than 12 characters, or when the text starts with `/`, it says nothing.
 - Once you send the prompt the line goes away and does not come back in that conversation.
 
-The line shows in the band above the prompt: terminal, desktop app and mobile. VS Code has no such band, so the mod does nothing there. Nor does it in `claude -p`.
+The line shows in the band above the prompt: terminal, desktop app and mobile. VS Code has no such band, so there is no advice and no `Improve` button there; `/mejora` is registered in its sessions too, but whether its pane and `Use` work there is untested. In `claude -p` the mod does nothing.
 
 `/consejo` shows the last advice with the rule that triggered it, its source and the conflicts it carries.
 
@@ -219,12 +219,13 @@ claude plugin test .
 - The Haiku part is tested with simulated answers. What the real Haiku answers, and how often it is right, shows in use.
 - The improver's tests use simulated answers. The Sonnet and Haiku comparison above is six prompts and five runs: a small sample.
 - Closing the pane yourself (with Escape or its close mark) forgets the proposal. No test covers it: the test kit cannot simulate that close.
-- The pane needs room. If the window is narrow, the mod makes no call and a notice asks you to widen it.
+- `Improve` and `/mejora` open the pane at any terminal width. If the engine still cannot place it (no surface draws panes), the mod makes no call and a notice says why.
 - Language detection works by words. A short draft with no frequent words or accents ("Postgres MySQL") does not change the language.
 - The signature "made with ♥ and Ai by Pin0" sits at the foot of the "Improved prompt" pane and at the end of `/consejo`. It does not fit in the band, which is a single line.
 
 ## Versions
 
+- **0.7.5**: `/mejora` opens the pane in a narrow terminal too (before, under 144 columns it stayed undrawn); `/consejo` and `/mejora` are registered in sessions that are not the terminal's REPL, such as VS Code's.
 - **0.7.4**: improver instructions from a real Sonnet and Haiku comparison: a question stays a question, the proposal and its tags follow the prompt's language, "this file" with nothing pasted asks for it, a preference is never `[OPTIONAL]`, and a clear question gets no `[REQUIRED]`.
 - **0.7.3**: `Turn off` now really survives `/clear` (it came back on in a real session).
 - **0.7.2**: `Turn off` / `Turn on` replace `Hide`, with "Advisor off" in the band; with Haiku on, the words' guess is never shown or applied.

@@ -14,7 +14,7 @@ Además, en cualquier prompt, el botón `Mejorar` pide a un modelo una versión 
 
 ![El panel Prompt mejorado: la propuesta de Sonnet para un script que borra logs antiguos, con una etiqueta NECESARIO en rojo, tres ESPECIFICAR en amarillo, la línea de cambios y los botones Usar y Descartar](docs/pane-es.png)
 
-Versión actual: **0.7.4** (en `.claude-plugin/plugin.json`).
+Versión actual: **0.7.5** (en `.claude-plugin/plugin.json`).
 
 ## Idioma
 
@@ -35,7 +35,7 @@ Lo que no cambia: el nombre de los comandos (`/consejo`, `/mejora`), las filas d
 - Con menos de 12 caracteres, o si el texto empieza por `/`, no dice nada.
 - Al enviar el prompt la línea desaparece y no vuelve en esa conversación.
 
-La línea sale en la banda de encima del prompt: terminal, app de escritorio y móvil. En VS Code esa banda no existe y el mod no hace nada. En `claude -p` tampoco.
+La línea sale en la banda de encima del prompt: terminal, app de escritorio y móvil. En VS Code esa banda no existe, así que allí no hay consejo ni botón `Mejorar`; `/mejora` también se registra en sus sesiones, pero no está probado si su panel y `Usar` funcionan. En `claude -p` el mod no hace nada.
 
 `/consejo` enseña la última sugerencia con la regla que la disparó, su fuente y los choques que arrastra.
 
@@ -219,12 +219,13 @@ claude plugin test .
 - La parte de Haiku está probada con respuestas simuladas. Qué contesta el Haiku de verdad, y cuánto acierta, se ve usándolo.
 - Los tests del mejorador usan respuestas simuladas. La comparación de Sonnet y Haiku de arriba son seis prompts y cinco pasadas: una muestra pequeña.
 - Cerrar el panel tú (con Escape o su aspa) olvida la propuesta. Eso no lo cubre ningún test: el kit de pruebas no puede simular ese cierre.
-- El panel necesita sitio. Si la ventana es estrecha, el mod no hace la llamada y un aviso te pide ensanchar.
+- `Mejorar` y `/mejora` abren el panel a cualquier ancho de terminal. Si aun así el motor no puede colocarlo (ninguna superficie dibuja paneles), el mod no hace la llamada y un aviso dice por qué.
 - La detección del idioma es por palabras. Un borrador corto sin palabras frecuentes ni tildes ("Postgres MySQL") no cambia el idioma.
 - La firma "made with ♥ and Ai by Pin0" va al pie del panel "Prompt mejorado" y al final de `/consejo`. En la banda no cabe: es una sola línea.
 
 ## Versiones
 
+- **0.7.5**: `/mejora` abre el panel también en una terminal estrecha (antes, por debajo de 144 columnas no se dibujaba); `/consejo` y `/mejora` se registran en sesiones que no son la terminal, como las de VS Code.
 - **0.7.4**: instrucciones del mejorador ajustadas tras comparar Sonnet y Haiku con prompts reales: una pregunta sigue siendo pregunta, la propuesta y sus etiquetas van en el idioma del prompt, "este archivo" sin nada pegado pide que lo pegues, una preferencia nunca es `[OPCIONAL]` y una pregunta clara no lleva `[NECESARIO]`.
 - **0.7.3**: `Desactivar` ya aguanta de verdad un `/clear` (en una sesión real se volvía a activar).
 - **0.7.2**: `Desactivar` / `Activar` sustituyen a `Ocultar`, con "Consejero desactivado" en la banda; con Haiku activo, la suposición de las palabras nunca se enseña ni se aplica.

@@ -11,7 +11,7 @@ import type { Rules } from './classifier'
 import { haikuTail, haikuSentence, readHaikuReply, haikuRequest } from './haiku'
 import { isImprovable, modelName } from './improver'
 import { detectLang, FALLBACK, langFromSetting, t } from './i18n'
-import { drawPane, forgetProposal, PANEL, requestImprovement, paintTags, EMPTY, IMPROVER_SHAPE } from './panel'
+import { drawPane, forgetProposal, openImprover, PANEL, requestImprovement, runImprovement, paintTags, EMPTY, IMPROVER_SHAPE } from './panel'
 import type { Classification, Advice, HaikuState, Lang, Settings, Assessment } from '../types'
 
 const RULES: Rules = rulesData
@@ -270,10 +270,10 @@ export const register: Register = (on, options) => {
   on('session.start', async ($, e, next) => {
     detach(refreshTheme($))
     const m = t(await startLanguage($))
-    if (e.isInteractive) {
-      await $.command.register({ name: 'consejo', description: m.consejoDescription, argumentHint: m.consejoHint })
-      await $.command.register({ name: 'mejora', description: m.mejoraDescription, argumentHint: m.mejoraHint })
-    }
+    // Reason: an SDK host (the VS Code extension, seen by Javi on 0.7.4) starts its sessions with isInteractive
+    // false, and a command registered only under the REPL never reached it. Registering is harmless elsewhere.
+    await $.command.register({ name: 'consejo', description: m.consejoDescription, argumentHint: m.consejoHint })
+    await $.command.register({ name: 'mejora', description: m.mejoraDescription, argumentHint: m.mejoraHint })
 
     return next(e)
   })
@@ -362,8 +362,10 @@ export const register: Register = (on, options) => {
     await followLanguage($, text)
     const language = await read($, lang)
     if (!isImprovable(text, RULES)) return { text: t(language).nothingToImprove, isTextDisplayOnly: true }
-    // Reason: the call takes seconds, and a command hook that waits on it freezes the command.
-    detach(requestImprovement($, text, improverModel))
+    // Reason: the pane opens here, inside the command's own hook, so the engine places it at any width;
+    // the model call takes seconds, and a command hook that waits on it freezes the command.
+    const mine = await openImprover($, text, improverModel)
+    if (mine !== null) detach(runImprovement($, text, improverModel, mine))
 
     return { text: t(language).preparing(modelName(improverModel, language)), isTextDisplayOnly: true }
   })
