@@ -1,6 +1,8 @@
 # session-overview
 
-A Claude Code mod that keeps a small pane next to the chat with what I kept checking by hand: which model and effort I'm on, what the session has cost, how full the context window is, and how much of the 5-hour and weekly limits is left.
+A Claude Code mod that keeps a small pane next to the chat with what I kept checking by hand: which model and effort I'm on, what the session has cost, how full the context window is, how much of the 5-hour and weekly limits is left, and which files the session created or modified, each one a click away in VS Code.
+
+![The session-overview pane: the session card with model, effort, cost and time; the workspace card; the context card waiting for the first reply; the limits card with the 5-hour window at 32% and the weekly one at 75%; and the files card, still empty](docs/pane.png)
 
 ```
 ▾ 1  📊 SESSION
@@ -22,6 +24,12 @@ A Claude Code mod that keeps a small pane next to the chat with what I kept chec
 ▾ 4  🚦 LIMITS
   ⌛ 5-hour 28% used, resets in 3h 12m
   📅 Weekly 92% used, resets in 2d 5h
+▾ 5  📝 FILES
+  A src/login/form.tsx
+  M README.md
+  M package.json
+  A created · M modified · click to
+  open in VS Code
 ```
 
 ## Install
@@ -43,6 +51,17 @@ claude --plugin-dir plugins/session-overview
 - The pane opens by itself when the terminal is in fullscreen and wide enough (about 144 columns). Below that, type `/overview` to open or close it.
 - Each card folds to a one-line summary. Click its header, or focus the pane (`ctrl+x` then `tab`), move to the header and press Enter. The pane remembers which cards you folded.
 - Colours follow your Claude Code theme. Green is under 70%, yellow from 70%, red from 90%, and every level also carries a word (OK, HIGH, CRITICAL).
+
+## The files card
+
+- It lists every file Claude wrote in this session with the Write, Edit or NotebookEdit tools, subagents included. The newest is on top.
+- **A** means the session created the file. **M** means it changed a file that was already there. A file the session created stays **A** after later edits.
+- Paths inside the session's folder show relative to it. Others show in full.
+- Click a row, or move to it and press Enter, to open the file in VS Code. Folded, the card shows a count such as `2 new · 3 modified`.
+- Opening runs `code --goto <file>` on the machine where Claude Code runs. **The `code` command must be on your PATH.** On macOS, run "Shell Command: Install 'code' command in PATH" from VS Code's command palette once. On Windows the installer adds it.
+- If VS Code can't be started, a toast says so. On Windows, a file name with `& | < > ^ % !` is not opened, because `cmd.exe` would treat those characters as commands.
+- Files changed only through Bash commands (`mv`, `sed -i`, a generator) are not listed: the pane sees the file tools alone.
+- The list belongs to the session. It survives `/reload-plugins`, not a new session.
 
 ## What the context bar marks
 
