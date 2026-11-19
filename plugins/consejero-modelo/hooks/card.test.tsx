@@ -60,6 +60,8 @@ function engine(on: any): Engine {
   })
   on('classic.SessionStart', () => ({}))
   on('classic.Stop', () => ({}))
+  on('session.start', (_: unknown, e: any) => ({ cwd: e.cwd }))
+  on('fs.read', (_: unknown, e: any) => ({ value: String(e.path ?? e).endsWith('/.claude-plugin/plugin.json') ? '{"version":"9.9.9"}' : '' }))
   on('command.register', (_: unknown, e: any) => ({ value: { command: e.name } }))
   on('prompt.edit', (_: unknown, e: any) => {
     m.box = e.text.slice(0, e.start) + e.inputText + e.text.slice(e.end)
@@ -249,4 +251,26 @@ test('the effort comes from /effort and from the end of each turn when /config h
   ui = await $.ui.mount(pane('terminal'))
   expect(await texts(ui)).toContain('Effort: low → medium · sin regla clara: antes de Opus, sube el effort')
   await ui.unmount()
+})
+
+test('the pane shows the version of the copy that runs, and /consejo says where the effort came from', async ($, on) => {
+  const m = engine(on)
+  delete (m.rows as Record<string, string>).effortLevel
+  await $.session.start({ cwd: '/', surface: 'terminal', isInteractive: true } as any)
+  await $.classic.SessionStart({ source: 'startup', cwd: '/' })
+  const before = await $.command.run({ command: 'consejo', args: '' } as any)
+  // No draft yet and no language setting: English, and the line comes after the report.
+  expect(before.text).toBe('No advice yet in this session.\nEffort the mod knows: none. It has seen no /effort, no /config change and no turn end.')
+
+  await mejora($, TASK)
+  const ui = await $.ui.mount(pane('terminal'))
+  const shown = await texts(ui)
+  expect(shown).toContain('consejero-modelo v9.9.9')
+  // The signature stays the pane's last line, after the version.
+  expect(shown.indexOf('consejero-modelo v9.9.9')).toBeLessThan(shown.indexOf('made with'))
+  await ui.unmount()
+
+  await $.prompt.submit({ text: '/effort high', command: { name: 'effort', args: 'high' } } as any)
+  const after = await $.command.run({ command: 'consejo', args: '' } as any)
+  expect(after.text).toContain('Effort que conoce el mod: high (de /effort).')
 })

@@ -33,12 +33,25 @@ let task: string | null = null
 // engine reports at the end of each turn. Reason: the engine has no call for the session's effort, and `/effort`
 // does not show in the /config row (seen by Javi on 0.8.2, in VS Code and in the terminal).
 let knownEffort: Effort | null = null
+/** Where the mod last learned the effort, for /consejo: a typed /effort, a /config write, or a turn's end. */
+export type EffortSource = 'command' | 'config' | 'turn'
+let effortSource: EffortSource | null = null
 
 /** Learns the session's effort from any of its sources; `auto` forgets it, anything else is ignored. */
-export function noteEffort(value: unknown) {
-  if (typeof value === 'string' && value.trim().toLowerCase() === 'auto') knownEffort = null
-  else knownEffort = effortOf(typeof value === 'string' ? value.trim() : value) ?? knownEffort
+export function noteEffort(value: unknown, source: EffortSource) {
+  if (typeof value === 'string' && value.trim().toLowerCase() === 'auto') {
+    knownEffort = null
+    effortSource = null
+    return
+  }
+  const level = effortOf(typeof value === 'string' ? value.trim() : value)
+  if (level === null) return
+  knownEffort = level
+  effortSource = source
 }
+
+/** The effort the mod knows and where from; both null when it has seen none. */
+export const effortReading = (): { effort: Effort | null; source: EffortSource | null } => ({ effort: knownEffort, source: effortSource })
 
 /** The model, and the effort: the one the mod learned, else the /config row, else unknown. */
 export async function readSettings($: EngineInterface): Promise<Settings> {
@@ -61,6 +74,7 @@ export async function writeRow($: EngineInterface, key: string, value: string, l
 export function startOver() {
   task = null
   knownEffort = null
+  effortSource = null
 }
 
 /** A new conversation keeps no task from the one before. */
@@ -192,7 +206,7 @@ export async function applyCard($: EngineInterface, c: SettingsCard, language: L
       continue
     }
     out.rowsBefore.push({ key: config.key, value: String(config.value ?? '') })
-    if (kind === 'effort') noteEffort(row.value)
+    if (kind === 'effort') noteEffort(row.value, 'config')
     out.parts.push(kind === 'model' ? m.partModel(displayName(row.value)) : m.partEffort(row.value))
   }
 
@@ -205,7 +219,7 @@ export async function undoRows($: EngineInterface, rows: ReadonlyArray<{ key: st
   // Reason: written back in reverse, so the model's own saved effort cannot overwrite the effort restored after it.
   for (const r of [...rows].reverse()) {
     if ((await writeRow($, r.key, r.value, language)) !== null) isOk = false
-    else if (/effort/i.test(r.key)) noteEffort(r.value)
+    else if (/effort/i.test(r.key)) noteEffort(r.value, 'config')
   }
   return isOk
 }

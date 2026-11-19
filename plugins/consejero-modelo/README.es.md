@@ -12,7 +12,7 @@ Solo sugiere. No cambia el modelo ni el effort por su cuenta: lo hace si pulsas 
 
 Además, en cualquier prompt, el botón `Mejorar` pide a un modelo una versión mejor de lo que escribiste y te la enseña en un panel, junto a una tarjeta de modelo y effort para ese mismo borrador. Tú eliges qué usas, y el Enter lo pulsas tú.
 
-Versión actual: **0.8.3** (en `.claude-plugin/plugin.json`).
+Versión actual: **0.8.4** (en `.claude-plugin/plugin.json`).
 
 ![El panel Prompt mejorado: la propuesta de Sonnet para un script que borra logs antiguos, con una etiqueta NECESARIO en rojo, tres ESPECIFICAR en amarillo, la línea de cambios y los botones Usar y Descartar](docs/pane-es.png)
 
@@ -37,7 +37,7 @@ Lo que no cambia: el nombre de los comandos (`/consejo`, `/mejora`), las filas d
 
 La línea sale en la banda de encima del prompt: terminal, app de escritorio y móvil. En VS Code esa banda no existe, así que allí no hay línea de consejo ni botón `Mejorar`; `/mejora` funciona, y su panel trae la tarjeta de modelo y effort. En `claude -p` el mod no hace nada.
 
-`/consejo` enseña la última sugerencia con la regla que la disparó, su fuente y los choques que arrastra.
+`/consejo` enseña la última sugerencia con la regla que la disparó, su fuente y los choques que arrastra, y el effort que conoce el mod y de dónde lo sacó.
 
 El botón `Mejorar` no sigue estas reglas: sale en cualquier prompt con 12 caracteres o más que no empiece por `/`. Fuera del primer prompt la banda solo tiene ese botón.
 
@@ -63,7 +63,7 @@ Pulsa `Mejorar` en la banda, o escribe `/mejora`. Pasa esto:
 4. Cada tarjeta y cada fila tiene `Usar`, en el verde de tu tema, y `Descartar`. Solo apuntan lo que eliges; todavía no cambia nada.
 5. Cuando todas las filas tienen elección, sale `Preparar` debajo de las tarjetas. Aplica lo que elegiste: la propuesta va a la caja, y el modelo y el effort a sus filas de `/config`. Nunca envía nada.
 6. Después de `Preparar`, el panel deja una línea fija con lo aplicado y lo descartado, por ejemplo `Aplicado: prompt en la caja, modelo Fable. Descartado: effort.`: el aviso se va en segundos, y VS Code no enseña el modelo en ningún sitio. `Deshacer` devuelve a la caja exactamente lo que tenía, y el modelo y el effort que tenías.
-7. Al pie, la firma "made with ♥ and Ai by Pin0", con los colores de tu tema claro u oscuro. Si el panel es estrecho, sale corta: "♥ Ai Pin0".
+7. Encima del pie, la versión de la copia que se ejecuta (`consejero-modelo v0.8.4`): un plugin instalado corre desde una copia, que puede ir por detrás de la carpeta que descomprimiste. Al pie, la firma "made with ♥ and Ai by Pin0", con los colores de tu tema claro u oscuro. Si el panel es estrecho, sale corta: "♥ Ai Pin0".
 
 ### Etiquetas por importancia
 
@@ -251,6 +251,8 @@ claude plugin test .
 - La firma "made with ♥ and Ai by Pin0" va al pie del panel "Prompt mejorado" y al final de `/consejo`. En la banda no cabe: es una sola línea.
 
 ## Versiones
+
+- **0.8.4**: el panel enseña la versión de la copia que se ejecuta; `/consejo` dice qué effort conoce el mod y de dónde lo sacó.
 
 - **0.8.3**: el effort se lee de `/effort <nivel>`, de `/config` y del final de cada turno, porque `/effort` no se ve en la fila de `/config` (visto por Javi en VS Code y en la terminal).
 

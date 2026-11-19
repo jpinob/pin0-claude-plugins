@@ -52,6 +52,7 @@ const lang = atom({ plugin: 'consejero-modelo', key: 'lang' } as const, FALLBACK
 // Reason: the engine lists each file's reads from atoms declared in that file, so register.tsx declares it too.
 const theme = atom({ plugin: 'consejero-modelo', key: 'theme' } as const, '')
 const card = atom({ plugin: 'consejero-modelo', key: 'card' } as const, HIDDEN, { shape: CARD_SHAPE })
+const version = atom({ plugin: 'consejero-modelo', key: 'version' } as const, '')
 // Reason: register.tsx reads it for the band, so it is declared there too.
 const settled = atom({ plugin: 'consejero-modelo', key: 'settled' } as const, false)
 
@@ -222,6 +223,8 @@ export async function drawPane($: EngineInterface, e: RenderInput<'Pane'>): Prom
   return (
     <Box flexDirection="column">
       {await paneBody($, e)}
+      {/* Reason: the person can tell which copy runs; the signature stays the pane's last line. */}
+      {(await read($, version)) !== '' && <Text color="text" dimColor>{`consejero-modelo v${await read($, version)}`}</Text>}
       {drawSignature({ Box, Text, Svg }, colors, e.props.bodyColumns)}
     </Box>
   )

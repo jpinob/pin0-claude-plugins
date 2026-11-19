@@ -12,7 +12,7 @@ import { haikuTail, haikuSentence, readHaikuReply, haikuRequest } from './haiku'
 import { isImprovable, modelName } from './improver'
 import { detectLang, FALLBACK, langFromSetting, t } from './i18n'
 import { drawPane, forgetProposal, openImprover, PANEL, runImprovement, paintTags, EMPTY, IMPROVER_SHAPE } from './panel'
-import { forgetTask, noteEffort, readSettings, startCard, startOver, writeRow } from './card'
+import { effortReading, forgetTask, noteEffort, readSettings, startCard, startOver, writeRow } from './card'
 import type { Classification, Advice, HaikuState, Lang, Assessment } from '../types'
 
 const RULES: Rules = rulesData
@@ -39,6 +39,8 @@ const lang = atom({ plugin: 'consejero-modelo', key: 'lang' } as const, FALLBACK
 const theme = atom({ plugin: 'consejero-modelo', key: 'theme' } as const, '')
 // True once Preparar applied the picks, until the next prompt is sent: the band stays quiet meanwhile.
 const settled = atom({ plugin: 'consejero-modelo', key: 'settled' } as const, false)
+// The version the engine loaded, read from the plugin's own manifest, for the pane's footer.
+const version = atom({ plugin: 'consejero-modelo', key: 'version' } as const, '')
 
 /** Follows the language of a text when it shows one; a text that says too little keeps the current language. */
 async function followLanguage($: EngineInterface, text: string) {
@@ -54,6 +56,20 @@ async function startLanguage($: EngineInterface): Promise<Lang> {
     return value
   } catch {
     return read($, lang)
+  }
+}
+
+/**
+ * Reads the loaded copy's version from its own plugin.json. Reason: an installed plugin runs from a copy, so the
+ * folder the person unzipped can hold a newer version than the one that runs (Javi, 0.8.3).
+ */
+async function readVersion($: EngineInterface) {
+  try {
+    const data: unknown = JSON.parse(await $.fs.read(`${$.plugin.root}/.claude-plugin/plugin.json`))
+    const value = typeof data === 'object' && data !== null ? (data as { version?: unknown }).version : undefined
+    if (typeof value === 'string') await update($, version, () => value)
+  } catch {
+    // No readable manifest: the footer shows no version.
   }
 }
 
@@ -269,6 +285,7 @@ export const register: Register = (on, options) => {
 
   on('session.start', async ($, e, next) => {
     detach(refreshTheme($))
+    detach(readVersion($))
     const m = t(await startLanguage($))
     // Reason: an SDK host (the VS Code extension, seen by Javi on 0.7.4) starts its sessions with isInteractive
     // false, and a command registered only under the REPL never reached it. Registering is harmless elsewhere.
@@ -316,7 +333,7 @@ export const register: Register = (on, options) => {
   // The first real prompt closes the window. `e` goes down exactly as it came.
   on('prompt.submit', ($, e, next) => {
     // `/effort high` sets the session's effort without touching the /config row, so the mod reads it here.
-    if (e.command?.name === 'effort') noteEffort(e.command.args.split(/\s+/)[0] ?? '')
+    if (e.command?.name === 'effort') noteEffort(e.command.args.split(/\s+/)[0] ?? '', 'command')
     if (e.command === undefined && e.isMeta !== true) {
       stopHaiku()
       stamp += 1
@@ -332,7 +349,7 @@ export const register: Register = (on, options) => {
 
   // Each turn ends with the effort it ran at: the surest reading the mod gets.
   on('classic.Stop', ($, e, next) => {
-    noteEffort(e.effort?.level)
+    noteEffort(e.effort?.level, 'turn')
 
     return next(e)
   })
@@ -348,7 +365,7 @@ export const register: Register = (on, options) => {
     const result = await next(e)
     // A new theme changes the signature's colour set at once.
     if (e.key === 'theme' && !('deny' in result)) await update($, theme, () => (typeof e.value === 'string' ? e.value : ''))
-    if (/effort/i.test(e.key) && !('deny' in result)) noteEffort(e.value)
+    if (/effort/i.test(e.key) && !('deny' in result)) noteEffort(e.value, 'config')
     detach(note($, draft))
 
     return result
@@ -365,10 +382,14 @@ export const register: Register = (on, options) => {
       return { text: m.auditStarted, isTextDisplayOnly: true }
     }
 
-    return {
-      text: report(await read($, last), RULES, language, haikuSentence(await read($, haiku), language)),
-      isTextDisplayOnly: true,
-    }
+    const lines = report(await read($, last), RULES, language, haikuSentence(await read($, haiku), language)).split('\n')
+    // Reason: the effort is the one reading that can fail silently, so /consejo says where it came from.
+    const reading = effortReading()
+    const line = reading.effort === null ? m.effortUnknown : m.effortKnown(reading.effort, m.effortSources[reading.source!])
+    // The signature, when the report has one, stays its last line.
+    lines.splice(lines[lines.length - 1]?.startsWith('made with') ? -1 : lines.length, 0, line)
+
+    return { text: lines.join('\n'), isTextDisplayOnly: true }
   })
 
   // /mejora improves the text after it, or the last draft written when there is none.

@@ -189,6 +189,9 @@ export const MESSAGES = {
       `Aviso: cambiar de modelo a mitad de sesión rompe la caché. El modelo nuevo relee ${tokens === null ? 'toda la conversación' : `${thousands(tokens, 'es')} tokens`} sin caché y sale más caro.`,
     cardHold: (effort: string, why: string) => `Effort: te quedas en ${effort} · no lo bajo: ${why}`,
     effortStay: (effort: string) => `Effort: te quedas en ${effort}.`,
+    effortKnown: (effort: string, source: string) => `Effort que conoce el mod: ${effort} (${source}).`,
+    effortUnknown: 'Effort que conoce el mod: ninguno. No ha visto un /effort, un cambio en /config ni el final de un turno.',
+    effortSources: { command: 'de /effort', config: 'de /config', turn: 'del final del último turno' },
     cardNoEffort: 'Effort: no puedo leer el tuyo en /config, así que no lo comparo.',
     holds: {
       continues: 'el prompt sigue la tarea anterior',
@@ -338,6 +341,9 @@ export const MESSAGES = {
       `Warning: switching models mid-session breaks the cache. The new model re-reads ${tokens === null ? 'the whole conversation' : `${thousands(tokens, 'en')} tokens`} uncached, which costs more.`,
     cardHold: (effort: string, why: string) => `Effort: staying at ${effort} · not lowering it: ${why}`,
     effortStay: (effort: string) => `Effort: staying at ${effort}.`,
+    effortKnown: (effort: string, source: string) => `Effort the mod knows: ${effort} (${source}).`,
+    effortUnknown: 'Effort the mod knows: none. It has seen no /effort, no /config change and no turn end.',
+    effortSources: { command: 'from /effort', config: 'from /config', turn: 'from the last turn\'s end' },
     cardNoEffort: 'Effort: I cannot read yours in /config, so I do not compare it.',
     holds: {
       continues: 'the prompt follows the task before',

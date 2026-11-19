@@ -154,6 +154,8 @@ declare module 'claude-code' {
       card: Shaped<SettingsCard>
       /** True once Preparar applied the picks, until the next prompt is sent: the band says nothing meanwhile. */
       settled: boolean
+      /** The version of the loaded copy, from its own plugin.json; empty when it could not be read. */
+      version: string
     }
   }
 }
