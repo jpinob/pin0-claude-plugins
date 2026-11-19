@@ -12,7 +12,7 @@ It only suggests. It never changes the model or the effort on its own: it does s
 
 On any prompt, the `Improve` button also asks a model for a better version of what you wrote and shows it in a pane, next to a model and effort card for that same draft. You pick what to use, and you press Enter yourself.
 
-Current version: **0.8.5** (in `.claude-plugin/plugin.json`).
+Current version: **0.8.6** (in `.claude-plugin/plugin.json`).
 
 ![The Improved prompt pane: Sonnet's proposal for "add dark mode to the settings page", with three SPECIFY tags in yellow, one OPTIONAL tag in green, a line of changes and the Use and Discard buttons](docs/pane-en.png)
 
@@ -63,7 +63,7 @@ Press `Improve` in the band, or type `/mejora`. This is what happens:
 4. Every card and every row has `Use`, in your theme's green, and `Discard`. They only record your pick; nothing changes yet.
 5. Once every row has a pick, `Prepare` shows up below the cards. It applies what you picked: the proposal goes into the box, and the model and effort go into their `/config` rows. It never sends anything.
 6. After `Prepare`, the pane keeps one line with what was applied and what was discarded, for example `Applied: prompt in the box, model Fable. Discarded: effort.`: the notice goes in seconds, and VS Code shows the model nowhere. `Undo` puts back exactly what the box held, and the model and effort you had.
-7. Above the foot, the version of the copy that runs (`consejero-modelo v0.8.5`): an installed plugin runs from a copy, which can lag behind the folder you unzipped. At the foot, the signature "made with ♥ and Ai by Pin0", in the colours of your light or dark theme. In a narrow pane it is short: "♥ Ai Pin0".
+7. Above the foot, the version of the copy that runs (`consejero-modelo v0.8.6`): an installed plugin runs from a copy, which can lag behind the folder you unzipped. At the foot, the signature "made with ♥ and Ai by Pin0", in the colours of your light or dark theme. In a narrow pane it is short: "♥ Ai Pin0".
 
 After `Prepare` the band says nothing, not even `Improve`, until you send the prompt: you have already decided for that draft. `/mejora` still works if you need it. `Undo` brings the band back.
 
@@ -240,7 +240,7 @@ claude plugin test .
 
 ## Known limits
 
-- The engine has no call to read the session's effort, and `/effort` does not show in the `/config` row. The mod learns it from three places: a `/effort <level>` you type, a change in `/config` (its own included), and the level the engine reports at the end of each turn. On a first prompt with none of those, it cannot read it: the card says so and compares the model alone. If you use the `CLAUDE_CODE_EFFORT_LEVEL` variable, it only sees it after the first turn.
+- The engine has no call to read the session's effort, and `/effort` does not show in the `/config` row. The mod follows Claude Code's own order ([model docs](https://code.claude.com/docs/en/model-config), read 19 November 2026): the `CLAUDE_CODE_EFFORT_LEVEL` variable; what this session showed (the level reported at the end of each turn, a `/effort <level>` typed, a `/config` change); the level saved for the model under `modelSettings`; a top-level `effortLevel`; the `/config` row; and the model's own default, `medium` for the models listed in `defaultEffort.models` in `rules.ts`. It cannot see `--effort` at launch until the first turn ends. `/consejo` says which source it used.
 - It does not look at `flujo-plan`'s state, which picks a model per step. With a step active, the line compares against your session's model, not the one that will answer.
 - The Haiku part is tested with simulated answers. What the real Haiku answers, and how often it is right, shows in use. That goes for the task memory too: whether Haiku tells a "yes" from a new task is untested on real prompts.
 - In VS Code the theme colours do not show, so the pane uses the signature's fixed colours there, measured at 4.5:1 on VS Code's backgrounds. The colours of the tags in the prompt box itself stay the theme's.
@@ -251,6 +251,8 @@ claude plugin test .
 - The signature "made with ♥ and Ai by Pin0" sits at the foot of the "Improved prompt" pane and at the end of `/consejo`. It does not fit in the band, which is a single line.
 
 ## Versions
+
+- **0.8.6**: the effort is read in Claude Code's own order, the level `/effort` saves under `modelSettings` and the model's default included; `/effort` saves there and never reached the mod in 0.8.5 (seen by Javi).
 
 - **0.8.5**: `/effort <level>` is read as the command runs; the mod listened for it where the built-in command never shows (seen by Javi on 0.8.4).
 

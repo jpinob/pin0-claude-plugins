@@ -2,7 +2,7 @@
 // Reason: each model has its own prompt cache, so a model switch mid-session re-reads the whole conversation
 // uncached; on the 5.5 models an effort change keeps the cache (https://code.claude.com/docs/en/prompt-caching,
 // read 19 nov 2026). So after the first prompt the model row carries a red warning with the tokens re-read.
-import type { Bilingual, CardRow, Classification, Settings } from '../types'
+import type { Bilingual, CardRow, Classification, Effort, Settings } from '../types'
 import { advise, displayName, EFFORTS, familyOf } from './classifier'
 import type { Rules } from './classifier'
 import { inBoth, t } from './i18n'
@@ -140,4 +140,41 @@ export function cardRows(c: Classification, settings: Settings, rules: Rules, ct
   const model = current === null ? settings.model : displayName(current)
 
   return { rows, note: inBoth(lang => `${m(lang).fineWith(model)} · ${reason[lang]}`), effortNote }
+}
+
+/** Where the session's effort was read, most certain first; null when no source gave one. */
+export type EffortSource = 'turn' | 'command' | 'config' | 'env' | 'saved' | 'setting' | 'row' | 'default'
+
+/** The model id as settings key it: the canonical name, without a `[1m]`-style suffix or a date. */
+export const canonicalModel = (model: string): string =>
+  model.toLowerCase().replace(/\[[^\]]*\]$/, '').replace(/-\d{8}$/, '').trim()
+
+/**
+ * The effort the settings give a model, in Claude Code's own order: the level saved for that model under
+ * `modelSettings`, else a top-level `effortLevel`, else the model's own default when rules.ts names it.
+ * Reason: `/effort high` saves under `modelSettings` and never shows in the /config row
+ * (https://code.claude.com/docs/en/settings-reference, read 19 nov 2026).
+ */
+export function effortFromSettings(
+  model: string,
+  modelSettings: unknown,
+  effortLevel: unknown,
+  rules: Rules,
+): { effort: Effort; source: EffortSource } | null {
+  const id = canonicalModel(model)
+  // Reason: settings take low to xhigh only; max is never saved there (the settings reference says so).
+  const SAVED: readonly Effort[] = ['low', 'medium', 'high', 'xhigh']
+  if (typeof modelSettings === 'object' && modelSettings !== null) {
+    const entries = Object.entries(modelSettings as Record<string, unknown>)
+    // Reason: Claude Code matches an alias or a longer id to the canonical entry, so a prefix counts.
+    const entry = entries.find(([k]) => canonicalModel(k) === id) ?? entries.find(([k]) => id.startsWith(canonicalModel(k)))
+    const saved = entry !== undefined && typeof entry[1] === 'object' && entry[1] !== null ? (entry[1] as { effortLevel?: unknown }).effortLevel : undefined
+    const level = SAVED.find(e => e === saved)
+    if (level !== undefined) return { effort: level, source: 'saved' }
+  }
+  const top = SAVED.find(e => e === effortLevel)
+  if (top !== undefined) return { effort: top, source: 'setting' }
+  if (rules.defaultEffort.models.includes(id)) return { effort: rules.defaultEffort.effort, source: 'default' }
+
+  return null
 }

@@ -228,12 +228,13 @@ test('in VS Code the pane paints with fixed colours: the theme keys do not show 
 
 test('the effort comes from /effort and from the end of each turn when /config has no effort row value', async ($, on) => {
   const m = engine(on)
-  // As seen by Javi in VS Code and the terminal: the /config row holds no level, so it cannot be compared.
+  // As seen by Javi in VS Code and the terminal: the /config row holds no level. With nothing else, Sonnet 5.5
+  // runs at its own default, medium, which rules.ts names.
   delete (m.rows as Record<string, string>).effortLevel
   await $.classic.SessionStart({ source: 'startup', cwd: '/' })
   await mejora($, TASK)
   let ui = await $.ui.mount(pane('terminal'))
-  expect(await texts(ui)).toContain('Effort: no puedo leer el tuyo en /config, así que no lo comparo.')
+  expect(await texts(ui)).toContain('Effort: medium → high · migración: antes de Fable, sube el effort')
   await ui.unmount()
 
   // `/effort xhigh` typed: the card now compares against it (the migration's rule asks for medium).
@@ -262,7 +263,7 @@ test('the pane shows the version of the copy that runs, and /consejo says where 
   await $.classic.SessionStart({ source: 'startup', cwd: '/' })
   const before = await $.command.run({ command: 'consejo', args: '' } as any)
   // No draft yet and no language setting: English, and the line comes after the report.
-  expect(before.text).toBe('No advice yet in this session.\nEffort the mod knows: none. It has seen no /effort, no /config change and no turn end.')
+  expect(before.text).toBe("No advice yet in this session.\nEffort the mod knows: medium (the model's own default).")
 
   await mejora($, TASK)
   const ui = await $.ui.mount(pane('terminal'))

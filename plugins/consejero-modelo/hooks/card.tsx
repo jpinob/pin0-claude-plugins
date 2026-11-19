@@ -8,8 +8,8 @@ import type { CardRow, Choice, Classification, Effort, Lang, Settings, SettingsC
 import { findRow, effortValue, modelValue } from './apply'
 import { classify, displayName, effortOf } from './classifier'
 import type { Rules } from './classifier'
-import { cardRows, NO_EVIDENCE, turnEvidence } from './effort'
-import type { Message, TurnEvidence } from './effort'
+import { cardRows, effortFromSettings, NO_EVIDENCE, turnEvidence } from './effort'
+import type { EffortSource, Message, TurnEvidence } from './effort'
 import { haikuRequest, haikuTaskRequest, readHaikuReply, readStandalone } from './haiku'
 import { FALLBACK, t } from './i18n'
 import { paneColors } from './palette'
@@ -33,8 +33,6 @@ let task: string | null = null
 // engine reports at the end of each turn. Reason: the engine has no call for the session's effort, and `/effort`
 // does not show in the /config row (seen by Javi on 0.8.2, in VS Code and in the terminal).
 let knownEffort: Effort | null = null
-/** Where the mod last learned the effort, for /consejo: a typed /effort, a /config write, or a turn's end. */
-export type EffortSource = 'command' | 'config' | 'turn'
 let effortSource: EffortSource | null = null
 
 /** Learns the session's effort from any of its sources; `auto` forgets it, anything else is ignored. */
@@ -50,14 +48,42 @@ export function noteEffort(value: unknown, source: EffortSource) {
   effortSource = source
 }
 
-/** The effort the mod knows and where from; both null when it has seen none. */
-export const effortReading = (): { effort: Effort | null; source: EffortSource | null } => ({ effort: knownEffort, source: effortSource })
+// Reason: a read that fails (no settings, no variable) is no reading, never an error in the pane.
+async function quiet<T>(work: Promise<T>): Promise<T | undefined> {
+  try {
+    return await work
+  } catch {
+    return undefined
+  }
+}
 
-/** The model, and the effort: the one the mod learned, else the /config row, else unknown. */
+/**
+ * The session's effort and where it came from, in Claude Code's own order: the environment variable; what this
+ * session showed (a turn's end, a typed /effort, a /config write); the level saved for the model; a top-level
+ * effortLevel; the /config row; the model's own default. Null when none gives one.
+ * Source: https://code.claude.com/docs/en/model-config, "Claude Code resolves the session's effort level".
+ */
+export async function readEffort($: EngineInterface, model: string): Promise<{ effort: Effort | null; source: EffortSource | null }> {
+  const fromEnv = effortOf(await quiet($.env.get('CLAUDE_CODE_EFFORT_LEVEL')))
+  if (fromEnv !== null) return { effort: fromEnv, source: 'env' }
+  if (knownEffort !== null) return { effort: knownEffort, source: effortSource }
+  const [modelSettings, effortLevel, rows] = await Promise.all([
+    quiet($.settings.read({ key: 'modelSettings' })),
+    quiet($.settings.read({ key: 'effortLevel' })),
+    quiet($.config.list()),
+  ])
+  const saved = effortFromSettings(model, modelSettings, effortLevel, RULES)
+  if (saved !== null && saved.source !== 'default') return saved
+  const row = effortOf((rows ?? []).find(f => /effort/i.test(f.key))?.value)
+  if (row !== null) return { effort: row, source: 'row' }
+
+  return saved ?? { effort: null, source: null }
+}
+
+/** The model and the effort, as readEffort finds it. */
 export async function readSettings($: EngineInterface): Promise<Settings> {
-  const [model, rows] = await Promise.all([$.session.model(), $.config.list()])
-  const row = rows.find(f => /effort/i.test(f.key))
-  return { model, effort: knownEffort ?? effortOf(row?.value) }
+  const model = await $.session.model()
+  return { model, effort: (await readEffort($, model)).effort }
 }
 
 // One /config row written as the person would in the menu; the engine's refusal comes back as text.

@@ -4,7 +4,7 @@ import { expect, test } from 'claude-code/testing'
 
 import rulesData from '../rules'
 import type { Rules } from './classifier'
-import { cardRows, NO_EVIDENCE, turnEvidence } from './effort'
+import { canonicalModel, cardRows, effortFromSettings, NO_EVIDENCE, turnEvidence } from './effort'
 import type { CardContext, Message } from './effort'
 import { haikuTaskRequest, readHaikuReply, readStandalone } from './haiku'
 
@@ -122,4 +122,19 @@ test('the later request fences the task memory and the last turn as data, and as
   // Untrusted output: anything but a boolean is no reading.
   expect(readStandalone('{"sola":"sí"}')).toBeNull()
   expect(readStandalone('nada')).toBeNull()
+})
+
+test('the settings give the effort in Claude Code order: saved for the model, then effortLevel, then the default', () => {
+  const saved = { 'claude-opus-5-5': { effortLevel: 'high' }, 'claude-sonnet-5-5': { maxEffortLevel: 'high' } }
+  // /effort high saves under the canonical name; a [1m] suffix or a date reads the same entry.
+  expect(canonicalModel('claude-opus-5-5[1m]')).toBe('claude-opus-5-5')
+  expect(effortFromSettings('claude-opus-5-5[1m]', saved, 'low', RULES)).toEqual({ effort: 'high', source: 'saved' })
+  // An entry with no level falls through to the top-level key.
+  expect(effortFromSettings('claude-sonnet-5-5', saved, 'low', RULES)).toEqual({ effort: 'low', source: 'setting' })
+  // Nothing saved: a 5.5 model runs at its own default.
+  expect(effortFromSettings('claude-haiku-5-5', undefined, undefined, RULES)).toEqual({ effort: 'medium', source: 'default' })
+  // A model rules.ts does not name has no default the mod can vouch for.
+  expect(effortFromSettings('claude-opus-5', undefined, undefined, RULES)).toBeNull()
+  // max is not accepted in settings, nor is anything else.
+  expect(effortFromSettings('claude-opus-5', { 'claude-opus-5': { effortLevel: 'turbo' } }, 'max', RULES)).toBeNull()
 })

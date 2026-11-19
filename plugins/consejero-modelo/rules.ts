@@ -18,7 +18,8 @@ const rules: Rules = {
   "defaultEffort": {
     "effort": "medium",
     "source": "https://code.claude.com/docs/en/model-config",
-    "quote": "Fable 5.2, Opus 5.5, Sonnet 5.5 y Haiku 5.5 usan medium por defecto"
+    "quote": "Fable 5.2, Opus 5.5, Sonnet 5.5 y Haiku 5.5 usan medium por defecto",
+    "models": ["claude-fable-5-2", "claude-opus-5-5", "claude-sonnet-5-5", "claude-haiku-5-5"]
   },
   "models": [
     {

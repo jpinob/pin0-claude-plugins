@@ -12,7 +12,7 @@ import { haikuTail, haikuSentence, readHaikuReply, haikuRequest } from './haiku'
 import { isImprovable, modelName } from './improver'
 import { detectLang, FALLBACK, langFromSetting, t } from './i18n'
 import { drawPane, forgetProposal, openImprover, PANEL, runImprovement, paintTags, EMPTY, IMPROVER_SHAPE } from './panel'
-import { effortReading, forgetTask, noteEffort, readSettings, startCard, startOver, writeRow } from './card'
+import { forgetTask, noteEffort, readEffort, readSettings, startCard, startOver, writeRow } from './card'
 import type { Classification, Advice, HaikuState, Lang, Assessment } from '../types'
 
 const RULES: Rules = rulesData
@@ -391,7 +391,7 @@ export const register: Register = (on, options) => {
 
     const lines = report(await read($, last), RULES, language, haikuSentence(await read($, haiku), language)).split('\n')
     // Reason: the effort is the one reading that can fail silently, so /consejo says where it came from.
-    const reading = effortReading()
+    const reading = await readEffort($, await $.session.model())
     const line = reading.effort === null ? m.effortUnknown : m.effortKnown(reading.effort, m.effortSources[reading.source!])
     // The signature, when the report has one, stays its last line.
     lines.splice(lines[lines.length - 1]?.startsWith('made with') ? -1 : lines.length, 0, line)
